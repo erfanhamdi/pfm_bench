@@ -2,7 +2,7 @@ import argparse
 import os
 from easyDataverse import Dataverse
 
-dataset_dict = {'tension': {'spect': 'doi:10.7910/DVN/YLQGUO',
+dataset_dict = {'tension': {'spect': 'doi:10.7910/DVN/G3QRE0',
                             'vol': 'doi:10.7910/DVN/G5DLI7',
                             'star': 'doi:10.7910/DVN/9URYI1'},
                 'shear': {'spect': 'doi:10.7910/DVN/KZDRUE',

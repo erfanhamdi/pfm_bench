@@ -1,1 +1,4 @@
 data/
+src/models/unet/__pycache__/
+src/models/unet/results/
+wandb
