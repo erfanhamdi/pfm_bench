@@ -2,7 +2,7 @@ import pytest
 from src.models.FNO.utils import FNODataset
 
 def test_load_fno_dataset():
-    dataset = FNODataset(datadir='data/tension/spect',
+    dataset = FNODataset(datadir='data/test/spect',
                             split='train',
                             initial_step=8,
                             train_ratio=0.8,

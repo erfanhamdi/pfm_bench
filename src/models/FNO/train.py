@@ -1,19 +1,16 @@
 import torch
 import numpy as np
-import pickle
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Dict, Any, Tuple
 import os
 import wandb
 import matplotlib.pyplot as plt
-from timeit import default_timer
 import glob
 from utils import FNODataset
 from fno import FNO2d
-import yaml
 import argparse
-# Set up reproducibility
+
 def set_seed(seed: int) -> None:
     """Set random seeds for reproducibility."""
     torch.manual_seed(seed)
@@ -23,67 +20,18 @@ def set_seed(seed: int) -> None:
         torch.cuda.manual_seed_all(seed)
     print(f"Seed set to: {seed}")
 
-# Global device configuration
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f"Using device: {device}")
-
-def load_datasets(data_dir: str, initial_step: int, batch_size: int = 16, num_workers: int = 4, 
-                 ds_size: int = 1000) -> Tuple[DataLoader, DataLoader, DataLoader]:
-    """
-    Load and prepare datasets for training, validation and testing.
-    
-    Args:
-        flnm: Path to the dataset file
-        initial_step: Initial time step
-        batch_size: Batch size for data loaders
-        num_workers: Number of workers for data loading
-        ds_size: Dataset size
-        
-    Returns:
-        Tuple of (train_loader, val_loader, test_loader)
-    """
-    dataset_params = {
-        'initial_step': initial_step,
-        'train_ratio': 0.8,
-        'val_ratio': 0.1,
-        'test_ratio': 0.1,
-        'ds_size': ds_size,
-    }
-    
-    train_data = FNODataset(data_dir, split='train', **dataset_params)
-    val_data = FNODataset(data_dir, split='val', **dataset_params)
-    test_data = FNODataset(data_dir, split='test', **dataset_params)
-    
-    print(f"Train size: {len(train_data)}")
-    
-    train_loader = DataLoader(train_data, batch_size=batch_size, num_workers=num_workers, shuffle=True)
-    val_loader = DataLoader(val_data, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-    test_loader = DataLoader(test_data, batch_size=5, num_workers=num_workers, shuffle=False)
-    
-    return train_loader, val_loader, test_loader
-
-def get_model_path(flnm: str, seed: int) -> str:
+def get_model_path(data_dir: str, seed: int, wandb_project: str) -> str:
     """Generate model path based on dataset name and seed."""
-    dataset_name = flnm.split('/')[-1].split('.')[0]
-    model_dir = "/projectnb/lejlab2/erfan/PF_Bench/FNO/models"
+    decomp_name = data_dir.split('/')[-1]
+    case_name = data_dir.split('/')[-2]
+    model_dir = f"src/models/FNO/results/{wandb_project}/{case_name}_{decomp_name}"
     
-    # Get wandb project name from current run or use default
-    if wandb.run is not None:
-        project_name = wandb.run.project
-    else:
-        project_name = "default"
-    
-    # Create project-specific subdirectory
-    project_dir = os.path.join(model_dir, project_name)
-    os.makedirs(project_dir, exist_ok=True)
-    
-    return f"{project_dir}/FNO_{dataset_name}_{seed}.pt"
+    return f"{model_dir}/FNO_{case_name}_{decomp_name}_{seed}.pt"
 
-def visualize_predictions(true_data, pred_data, epoch: int, 
+def log_prediction_samples(true_data, pred_data, epoch: int, 
                          initial_step: int, t_train: int) -> Dict[str, Any]:
    
     images = {}
-    # Create figures for every 3rd channel
     num_channels = true_data.shape[-1]
     for ch_idx in range(0, num_channels):
         fig, axes = plt.subplots(2, 2, figsize=(12, 12))
@@ -91,47 +39,31 @@ def visualize_predictions(true_data, pred_data, epoch: int,
         
         sample_idx = 0
         
-        # Select 3 time steps to visualize
+        # 2 time steps to visualize
         time_steps = [
-            initial_step,  # First predicted step
-            t_train - 1,  # Last step
+            initial_step,  
+            t_train - 1, 
         ]
-        # for sample_idx in range(sample_numbers):
         for i, t_idx in enumerate(time_steps):
             # Ground truth
             im1 = axes[i, 0].imshow(true_data[sample_idx,..., t_idx, ch_idx], cmap='coolwarm')
             axes[i, 0].set_title(f'Ground Truth t={t_idx}')
-            plt.colorbar(im1, ax=axes[i, 0])
+            fig.colorbar(im1, ax=axes[i, 0])
             
-                # Prediction
+            # Prediction
             im2 = axes[i, 1].imshow(pred_data[sample_idx, ..., t_idx, ch_idx], cmap='coolwarm')
             axes[i, 1].set_title(f'Prediction t={t_idx}')
-            plt.colorbar(im2, ax=axes[i, 1])
+            fig.colorbar(im2, ax=axes[i, 1])
         
             plt.tight_layout()
-        
-            # Save figure to wandb
-            images[f'channel_{ch_idx}'] = wandb.Image(fig)
+            images[f'channel_{ch_idx}'] = wandb.Image(fig, caption=f'Channel {ch_idx} (Epoch {epoch})')
             plt.close(fig)
-
-    return images
+    wandb.log(images, step = epoch)
 
 def train_epoch(model: nn.Module, train_loader: DataLoader, optimizer: torch.optim.Optimizer, 
-               loss_fn: nn.Module, initial_step: int, t_train: int, training_type: str) -> Tuple[float, float]:
+               loss_fn: nn.Module, initial_step: int, t_train: int, training_type: str, device: torch.device) -> Tuple[float, float]:
     """
-    Train the model for one epoch.
-    
-    Args:
-        model: The FNO model
-        train_loader: DataLoader for training data
-        optimizer: Optimizer for training
-        loss_fn: Loss function
-        initial_step: Initial time step
-        t_train: Maximum time step to train
-        training_type: 'autoregressive' or 'single'
-        
-    Returns:
-        Tuple of (train_l2_step, train_l2_full) losses
+    Run one training epoch.
     """
     model.train()
     train_l2_step = 0
@@ -188,7 +120,7 @@ def train_autoregressive(model: nn.Module, xx: torch.Tensor, yy: torch.Tensor, g
     return loss, l2_full
 
 def validate(model: nn.Module, val_loader: DataLoader, loss_fn: nn.Module, 
-            initial_step: int, t_train: int, epoch: int) -> float:
+            initial_step: int, t_train: int, epoch: int, device: torch.device) -> float:
     """
     Validate the model and return validation loss.
     
@@ -230,8 +162,7 @@ def validate(model: nn.Module, val_loader: DataLoader, loss_fn: nn.Module,
             val_l2_full += loss_fn(_pred.reshape(_batch, -1), _yy.reshape(_batch, -1)).item()
         true_data = yy[..., :t_train, :].cpu().numpy()
         pred_data = pred[..., :t_train, :].cpu().numpy()
-        vis_images = visualize_predictions(true_data, pred_data, epoch, initial_step, t_train)
-        wandb.log(vis_images, step=epoch)
+        log_prediction_samples(true_data, pred_data, epoch, initial_step, t_train)
                 
     return val_l2_full
 
@@ -246,6 +177,78 @@ def save_checkpoint(model: nn.Module, optimizer: torch.optim.Optimizer,
     }
     torch.save(checkpoint, model_path)
     print(f"Model saved to {model_path}")
+
+def load_checkpoint_if_continuing(continue_training: bool, data_dir: str, seed: int, 
+                                 wandb_project: str, model: nn.Module, 
+                                 optimizer: torch.optim.Optimizer, device: torch.device) -> tuple[int, float]:
+    """
+    Load checkpoint if continuing training from a previous run.
+    
+    Args:
+        continue_training: Whether to continue from checkpoint
+        data_dir: Dataset directory path
+        seed: Random seed used for model naming
+        wandb_project: WandB project name for checkpoint organization
+        model: The model to load state into
+        optimizer: The optimizer to load state into
+        device: Device to load tensors onto
+        
+    Returns:
+        Tuple of (start_epoch, min_val_loss)
+    """
+    start_epoch = 0
+    min_val_loss = float('inf')
+    
+    if not continue_training:
+        return start_epoch, min_val_loss
+        
+    model_path = get_model_path(data_dir, seed, wandb_project)
+    print(f"Model path: {model_path}")
+    print('Restoring model from checkpoint...')
+    
+    model_lists = glob.glob(f"{model_path}/*.pt")
+    
+    if model_lists:
+        model_epochs = []
+        for model_file in model_lists:
+            try:
+                epoch_str = model_file.split('_')[-1].split('.')[0]
+                epoch_num = int(epoch_str)
+                model_epochs.append((epoch_num, model_file))
+            except (ValueError, IndexError):
+                print(f"Skipping file with invalid format: {model_file}")
+        model_epochs.sort(reverse=True)
+        
+        if model_epochs:
+            latest_epoch, latest_model = model_epochs[0]
+            print(f"Found latest checkpoint at epoch {latest_epoch}: {latest_model}")
+            checkpoint_path = latest_model
+        else:
+            print("No valid checkpoints found. Starting from scratch.")
+            return start_epoch, min_val_loss
+    else:
+        print("No checkpoints found. Starting from scratch.")
+        return start_epoch, min_val_loss
+    
+    # Load checkpoint if it exists
+    if os.path.exists(checkpoint_path):
+        checkpoint = torch.load(checkpoint_path, map_location=device)
+        model.load_state_dict(checkpoint['model_state_dict'])
+        
+        # Load optimizer state
+        optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
+        for state in optimizer.state.values():
+            for k, v in state.items():
+                if isinstance(v, torch.Tensor):
+                    state[k] = v.to(device)
+        
+        start_epoch = checkpoint['epoch'] + 1
+        min_val_loss = checkpoint['loss']
+        print(f'Starting from epoch {start_epoch} with validation loss {min_val_loss}')
+    else:
+        print(f"Warning: Checkpoint {checkpoint_path} not found. Starting from scratch.")
+    
+    return start_epoch, min_val_loss
 
 def run_training(continue_training: bool,
                  modes: int,
@@ -265,72 +268,48 @@ def run_training(continue_training: bool,
                  num_workers: int = 4,
                  use_wandb: bool = True,
                  wandb_project: str = "FNO-Training",
-                 wandb_entity: str = None,
+                 model_name: str = None,
                  res: int = 128,
                  **kwargs) -> None:
-    """
-    Main training function for FNO model.
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    print(f"Using device: {device}")
     
-    Args:
-        continue_training: Whether to continue training from a checkpoint
-        modes: Number of Fourier modes
-        width: Model width
-        initial_step: Initial time step
-        t_train: Maximum time step to train
-        num_channels: Number of channels
-        epochs: Number of training epochs
-        learning_rate: Learning rate
-        scheduler_step: Steps for learning rate scheduler
-        scheduler_gamma: Gamma for learning rate scheduler
-        model_update: How often to update the model
-        flnm: Path to the dataset file
-        training_type: 'autoregressive' or 'single'
-        ensemble: Whether to use ensemble of models
-        seed: Random seed
-        batch_size: Batch size for data loaders
-        num_workers: Number of workers for data loading
-        use_wandb: Whether to use wandb for logging
-        wandb_project: Wandb project name
-        wandb_entity: Wandb entity name
-        **kwargs: Additional arguments
-    """
-    print(f'Epochs = {epochs}, learning rate = {learning_rate}, scheduler step = {scheduler_step}, scheduler gamma = {scheduler_gamma}')
-    
-    # Initialize wandb
-    if use_wandb:
-        # Get dataset name for run name
-        dataset_name = data_dir.split('/')[-1].split('.')[0]
-        run_name = f"FNO_{dataset_name}_seed_{seed}"
-        
-        wandb.init(
-            project=wandb_project,
-            entity=wandb_entity,
-            name=run_name,
-            config={
-                "modes": modes,
-                "width": width,
-                "initial_step": initial_step,
-                "t_train": t_train,
-                "num_channels": num_channels,
-                "epochs": epochs,
-                "learning_rate": learning_rate,
-                "scheduler_step": scheduler_step,
-                "scheduler_gamma": scheduler_gamma,
-                "training_type": training_type,
-                "seed": seed,
-                "batch_size": batch_size,
-                "num_workers": num_workers,
-            }
-        )
-    # Load datasets
-    train_loader, val_loader, test_loader = load_datasets(
-        data_dir, initial_step, batch_size, num_workers, ds_size=1000
-    )
     decomp_name = data_dir.split('/')[-1]
     case_name = data_dir.split('/')[-2]
     model_dir = f"src/models/FNO/results/{wandb_project}/{case_name}_{decomp_name}"
     os.makedirs(model_dir, exist_ok=True)
     model_path = f"{model_dir}/FNO_{case_name}_{decomp_name}.pt"
+
+    wandb.init(
+        project=wandb_project,
+        name=model_name,
+        config={
+            "modes": modes,
+            "width": width,
+            "initial_step": initial_step,
+            "t_train": t_train,
+            "num_channels": num_channels,
+            "epochs": epochs,
+            "learning_rate": learning_rate,
+            "scheduler_step": scheduler_step,
+            "scheduler_gamma": scheduler_gamma,
+            "training_type": training_type,
+            "seed": seed,
+            "batch_size": batch_size,
+            "num_workers": num_workers,
+        }
+    )
+
+    # Create datasets and loaders
+    train_dataset = FNODataset(data_dir, split='train', initial_step=initial_step, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, ds_size=-1)
+    val_dataset = FNODataset(data_dir, split='val', initial_step=initial_step, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, ds_size=-1)
+    test_dataset = FNODataset(data_dir, split='test', initial_step=initial_step, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, ds_size=-1)
+    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
+    test_loader = DataLoader(test_dataset, batch_size=5, num_workers=num_workers, shuffle=False)
+
+    
     # Initialize model
     _, sample_data, _ = next(iter(train_loader))
     dimensions = len(sample_data.shape) - 3
@@ -350,106 +329,52 @@ def run_training(continue_training: bool,
         initial_step=initial_step
     ).to(device)
     
-
+    wandb.watch(model, log="all", log_freq=10)
     
     # Initialize optimizer and scheduler
+    loss_fn = nn.MSELoss(reduction="mean")
     optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-4)
     scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=scheduler_step, gamma=scheduler_gamma)
-    loss_fn = nn.MSELoss(reduction="mean")
     
-    # Initialize training variables
-    start_epoch = 0
-    loss_val_min = float('inf')
-    
-    # Load checkpoint if continuing training
     if continue_training:
-        model_path = get_model_path(data_dir, seed)
-        print(f"Model path: {model_path}")
-        print('Restoring model from checkpoint...')
-        model_name_ = model_path.split('/')[-1].split('.')[0]
-        model_lists = glob.glob(f"/projectnb/lejlab2/erfan/PF_Bench/FNO/models/{wandb_project}/{model_name_}_*.pt")
-        # Sort model checkpoints based on epoch number
-        if model_lists:
-            # Extract epoch numbers from filenames and sort
-            model_epochs = []
-            for model_file in model_lists:
-                try:
-                    # Extract the epoch number from the filename
-                    epoch_str = model_file.split('_')[-1].split('.')[0]
-                    epoch_num = int(epoch_str)
-                    model_epochs.append((epoch_num, model_file))
-                except (ValueError, IndexError):
-                    print(f"Skipping file with invalid format: {model_file}")
-            
-            # Sort by epoch number (descending)
-            model_epochs.sort(reverse=True)
-            
-            if model_epochs:
-                # Use the latest checkpoint
-                latest_epoch, latest_model = model_epochs[0]
-                print(f"Found latest checkpoint at epoch {latest_epoch}: {latest_model}")
-                checkpoint_path = latest_model
-            else:
-                print("No valid checkpoints found. Starting from scratch.")
-        else:
-            print("No checkpoints found. Starting from scratch.")
-        # checkpoint_path = kwargs.get('checkpoint_path', model_path)
-        if os.path.exists(checkpoint_path):
-            checkpoint = torch.load(checkpoint_path, map_location=device)
-            model.load_state_dict(checkpoint['model_state_dict'])
-            
-            # Load optimizer state
-            optimizer.load_state_dict(checkpoint['optimizer_state_dict'])
-            for state in optimizer.state.values():
-                for k, v in state.items():
-                    if isinstance(v, torch.Tensor):
-                        state[k] = v.to(device)
-            
-            start_epoch = checkpoint['epoch'] + 1
-            loss_val_min = checkpoint['loss']
-            print(f'Starting from epoch {start_epoch} with validation loss {loss_val_min}')
-        else:
-            print(f"Warning: Checkpoint {checkpoint_path} not found. Starting from scratch.")
-    
-    # Log model architecture to wandb
-    if use_wandb:
-        wandb.watch(model, log="all")
-    
+        # Load checkpoint if continuing training
+        start_epoch, min_val_loss = load_checkpoint_if_continuing(
+            continue_training, data_dir, seed, wandb_project, model, optimizer, device
+        )
+    else:
+        start_epoch = 0
     # Training loop
-    for ep in range(start_epoch, epochs):
-        t1 = default_timer()
-        
+    for epoch in range(start_epoch, epochs):
+        print(f"Epoch {epoch}/{epochs}")
         # Train for one epoch
         train_l2_step, train_l2_full = train_epoch(
-            model, train_loader, optimizer, loss_fn, initial_step, t_train, training_type
-        )
+            model, train_loader, optimizer, loss_fn, initial_step, t_train, training_type, device
+            )
         
         # Update learning rate
         scheduler.step()
         
         # Validate periodically
-        if ep % model_update == 0:
-            val_l2_full = validate(model, val_loader, loss_fn, initial_step, t_train, ep)
+        if epoch % model_update == 0:
+            val_l2_full = validate(model, val_loader, loss_fn, initial_step, t_train,epoch, device)
             
             # Save model checkpoint
-            checkpoint_path = f"{model_dir}/FNO_{case_name}_{decomp_name}_{ep}.pt"
-            save_checkpoint(model, optimizer, ep, val_l2_full, checkpoint_path)
+            checkpoint_path = f"{model_dir}/FNO_{case_name}_{decomp_name}_{epoch}.pt"
+            save_checkpoint(model, optimizer,epoch, val_l2_full, checkpoint_path)
             
         else:
             val_l2_full = float('nan')
 
-        t2 = default_timer()
-        print(f'Epoch: {ep}, Time: {t2-t1:.2f}s, Train L2: {train_l2_full:.5f}, Val L2: {val_l2_full:.5f}')
+        print(f'Epoch: {epoch}, Train L2: {train_l2_full:.5f}, Val L2: {val_l2_full:.5f}')
         
         # Log metrics to wandb
         if use_wandb:
             wandb.log({
-                "epoch": ep,
+                "epoch":epoch,
                 "train_loss": train_l2_full,
                 "val_loss": val_l2_full if not np.isnan(val_l2_full) else None,
                 "learning_rate": scheduler.get_last_lr()[0],
-                "epoch_time": t2 - t1
-            }, step=ep)
+            }, step = epoch)
 
 if __name__ == "__main__":
     # argparser

@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
-import pathlib
 import torch
+import os
 from torch.utils.data import DataLoader
 import wandb
 from unet import UNet, CombinedLoss
@@ -18,7 +18,9 @@ def set_seed(seed: int) -> None:
     print(f"Seed set to: {seed}", flush=True)
 
 def train_epoch(model, train_loader, loss_fn, optimizer, device):
-    """Run one training epoch."""
+    """
+    Run one training epoch.
+    """
     model.train()
     total_loss = 0
     n_batches = 0
@@ -64,20 +66,15 @@ def validate(model, val_loader, loss_fn, device):
 def log_prediction_samples(model, data_loader, device, threshold, num_samples=4, prefix="val"):
     """Log prediction samples to wandb."""
     model.eval()
-    
     with torch.no_grad():
-        # Get a batch of data
         x_batch, y_batch = next(iter(data_loader))
         x_batch, y_batch = x_batch.to(device), y_batch.to(device)
         y_batch = y_batch > threshold
-        # Generate predictions
         y_pred = model(x_batch)
         y_pred = torch.sigmoid(y_pred)
         
-        # Log images
         images = []
         for i in range(min(num_samples, len(x_batch))):
-            # Create a matplotlib figure for side-by-side comparison
             fig, axes = plt.subplots(1, 3, figsize=(12, 4))
             
             # Input
@@ -94,7 +91,6 @@ def log_prediction_samples(model, data_loader, device, threshold, num_samples=4,
             axes[2].imshow(y_pred[i, 0].cpu().numpy(), cmap='gray')
             axes[2].set_title('Prediction')
             axes[2].axis('off')
-
             
             plt.tight_layout()
             images.append(wandb.Image(fig, caption=f"{prefix} Sample {i+1}"))
@@ -103,50 +99,53 @@ def log_prediction_samples(model, data_loader, device, threshold, num_samples=4,
         # Log to wandb
         wandb.log({f"{prefix}_predictions": images})
 
-def training(flnm, epochs, batch_size, learning_rate, decay_rate, decay_step, in_channels, channels, threshold, model_name, 
-             alpha=0.1, beta=0.9, seed = 0,run_id=None, wandb_project=None):
-    """Run the training process and evaluate on test set."""
-    # Setup paths
-    base_path = "src/models/UNet/results"
-    model_dir = f"{base_path}/best_models/{wandb_project}"
-    pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
+def run_training(data_dir: str, 
+                 epochs: int, 
+                 batch_size: int, 
+                 learning_rate: float, 
+                 decay_rate: float, 
+                 decay_step: int, 
+                 in_channels: int, 
+                 channels: int, 
+                 threshold: float, 
+                 alpha: float = 0.1, 
+                 beta: float = 0.9, 
+                 seed: int = 0,
+                 wandb_project: str = "UNet-Training",
+                 model_name: str = None):
     
-    # Initialize wandb
-    if run_id:
-        # Resume previous run
-        wandb.init(id=run_id, resume="must")
-    else:
-        # Start a new run
-        wandb.init(
-            project=wandb_project,
-            name=model_name,
-            config={
-                "learning_rate": learning_rate,
-                "decay_rate": decay_rate,
-                "decay_step": decay_step,
-                "in_channels": in_channels,
-                "channels": channels, "threshold":threshold,
-                "alpha": alpha,
-                "beta": beta,
-                "epochs": epochs,
-                "architecture": "UNet",
-                "loss": f"CombinedLoss(alpha={alpha}, beta={beta})",
-                "dataset": flnm,
-                "seed": seed
-            }
-        )
-    
-    # Setup device
     device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}", flush=True)
-
-    # Create datasets and loaders
-    ds = -1
-    c = in_channels
     
-    train_dataset = UNetDataset(datadir=flnm, split='train', num_c=c, ds_size=ds)
-    val_dataset = UNetDataset(datadir=flnm, split='val', num_c=c, apply_transforms=False, ds_size=ds)
-    test_dataset = UNetDataset(datadir=flnm, split='test', num_c=c, apply_transforms=False, ds_size=ds)
+    decomp_name = data_dir.split('/')[-1]
+    case_name = data_dir.split('/')[-2]
+    model_dir = f"src/models/UNet/results/{wandb_project}/{case_name}_{decomp_name}"
+    os.makedirs(model_dir, exist_ok=True)
+    model_path = f"{model_dir}/UNet_{case_name}_{decomp_name}.pt"
+    
+    wandb.init(
+        project=wandb_project,
+        name=model_name,
+        config={
+            "learning_rate": learning_rate,
+            "decay_rate": decay_rate,
+            "decay_step": decay_step,
+            "in_channels": in_channels,
+            "channels": channels, "threshold":threshold,
+            "alpha": alpha,
+            "beta": beta,
+            "epochs": epochs,
+            "architecture": "UNet",
+            "loss": f"CombinedLoss(alpha={alpha}, beta={beta})",
+            "dataset": data_dir,
+            "seed": seed
+        }
+    )
+    
+    # Create datasets and loaders
+    train_dataset = UNetDataset(datadir=data_dir, split='train', num_c=in_channels, ds_size=-1)
+    val_dataset = UNetDataset(datadir=data_dir, split='val', num_c=in_channels, apply_transforms=False, ds_size=-1)
+    test_dataset = UNetDataset(datadir=data_dir, split='test', num_c=in_channels, apply_transforms=False, ds_size=-1)
     
     train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size)
@@ -168,13 +167,14 @@ def training(flnm, epochs, batch_size, learning_rate, decay_rate, decay_step, in
     train_losses = []
     val_losses = []
     best_model_path = None
-    best_epoch = -1
     
     for epoch in range(epochs):
-        print(f"\nEpoch {epoch+1}/{epochs}")
+        print(f"Epoch {epoch}/{epochs}")
         
         # Train
-        train_loss = train_epoch(model, train_loader, loss_fn, optimizer, device)
+        train_loss = train_epoch(
+            model, train_loader, loss_fn, optimizer, device
+            )
         train_loss /= len(train_dataset)
         train_losses.append(train_loss)
         
@@ -200,8 +200,7 @@ def training(flnm, epochs, batch_size, learning_rate, decay_rate, decay_step, in
         # Save best model
         if val_loss < min_val_loss:
             min_val_loss = val_loss
-            best_epoch = epoch
-            best_model_path = f"{model_dir}/{model_name}_best_{epoch}_val_loss_{val_loss:.6f}.pt"
+            best_model_path = f"{model_path}/{model_name}_best_{epoch}_val_loss_{val_loss:.6f}.pt"
             torch.save(model.state_dict(), best_model_path)
             # Log best model path
             wandb.save(best_model_path)
@@ -210,7 +209,7 @@ def training(flnm, epochs, batch_size, learning_rate, decay_rate, decay_step, in
         
         # Save intermediate models and log predictions
         if epoch % 30 == 0:
-            torch.save(model.state_dict(), f"{model_dir}/aug_{model_name}_intermediate_{epoch}.pt")
+            torch.save(model.state_dict(), f"{model_path}/aug_{model_name}_intermediate_{epoch}.pt")
             log_prediction_samples(model, val_loader, device, threshold, num_samples=4, prefix="val")
     
     # Save final model
@@ -241,7 +240,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
     # Train multiple models with different random seeds
     i = args.seed
-    flnm = args.data_dir
+    data_dir = args.data_dir
     epochs = args.epochs
     threshold = args.threshold
     batch_size = args.batch_size
@@ -255,8 +254,8 @@ if __name__ == "__main__":
     set_seed(i)
     
     # Train model
-    train_losses, val_losses, test_loss, test_dice = training(
-        flnm = flnm,
+    train_losses, val_losses, test_loss, test_dice = run_training(
+        data_dir = data_dir,
         epochs=epochs,
         batch_size=batch_size,
         learning_rate=learning_rate,
@@ -269,7 +268,6 @@ if __name__ == "__main__":
         alpha=alpha,  # Weight for Dice loss
         beta=beta,    # Weight for Focal loss
         seed = i,
-        wandb_project=f"test-gh-unet-tension-{args.res}x{args.res}-{threshold}"
+        wandb_project=f"test-gh"
     )
     
-    # print(f"Model {i} test results: Loss={test_loss:.6f}, Dice={test_dice:.6f}", flush=True)
