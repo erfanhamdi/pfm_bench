@@ -32,32 +32,25 @@ class UNetDataset(Dataset):
         self.num_c = num_c
         self.apply_transforms = apply_transforms
         
-        # Find all hdf5 files in the directory
-        hdf5_files = glob.glob(os.path.join(self.data_dir, "*.hdf5"))
+        # Discover HDF5 files and build (file_path, seed) mapping in one pass
+        hdf5_files = sorted(glob.glob(os.path.join(self.data_dir, "*.hdf5")))
         if not hdf5_files:
             raise ValueError(f"No hdf5 files found in directory: {self.data_dir}")
-        
-        # Extract list of seeds (filenames without extension)
-        all_data_list = []
-        self.file_mapping = []  # Maps data index to (file_path, seed_name)
-        
-        for file_path in sorted(hdf5_files):
-            # Get filename without extension as seed name
-            seed_name = os.path.splitext(os.path.basename(file_path))[0]
-            # Pad seed name to 8 digits with zeros
-            seed_name = seed_name.zfill(8)
-            all_data_list.append(seed_name)
-            self.file_mapping.append((file_path, seed_name))
-        
+
+        self.file_mapping = [
+            (fp, os.path.splitext(os.path.basename(fp))[0].zfill(8))
+            for fp in hdf5_files
+        ]
+
+        # Optionally limit dataset size
         if ds_size > 0:
-            all_data_list = all_data_list[:ds_size]
             self.file_mapping = self.file_mapping[:ds_size]
         
         # Verify ratios sum to 1
         assert abs(train_ratio + val_ratio + test_ratio - 1.0) < 1e-5, "Ratios must sum to 1"
         
         # Split data
-        n_samples = len(all_data_list)
+        n_samples = len(self.file_mapping)
         train_end = int(n_samples * train_ratio)
         val_end = train_end + int(n_samples * val_ratio)
         
@@ -101,17 +94,21 @@ class UNetDataset(Dataset):
         # Open file and read data
         with h5py.File(file_path, 'r') as hdf5_file:
             seed_group = hdf5_file[seed_name]
-            # data dim = [t, x1, ..., xd, v]
-            data = np.array(seed_group["data"], dtype='f')
-            data = torch.tensor(data, dtype=torch.float)
+            # Load data once and keep in float32 torch tensor (shape preserved)
+            data = torch.from_numpy(np.array(seed_group["data"], dtype=np.float32))
             
-            x = data[:self.num_c, 0, :, :]
-            y = data[:self.num_c, -1, :, :]
-            # normalize x channels separately between 0 and 1
-            if self.num_c != 1:
-                for ch in range(1, 3):
-                    x[ch, :, :] = data[ch, 0, :, :] / (((0 * 50) + 1) * 1e-6)
-                    y[ch, :, :] = data[ch, -1, :, :] / (((100 * 50) + 1) * 1e-6)
+            x = data[:self.num_c, 0]      # first timestep
+            y = data[:self.num_c, -1]     # last timestep
+
+            # Vectorised normalisation (for channels beyond the first)
+            if self.num_c > 1:
+                # Scale factors based on timestep index
+                scale_x = 1e-6                                   # t = 0
+                t_last = data.shape[1] - 1
+                scale_y = ((t_last * 50) + 1) * 1e-6
+                x[1:self.num_c] = x[1:self.num_c] / scale_x
+                y[1:self.num_c] = y[1:self.num_c] / scale_y
+            
             x, y = self.transform(x, y)  
             
         return x.double(), y.double()

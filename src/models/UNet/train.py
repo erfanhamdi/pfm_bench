@@ -81,19 +81,19 @@ def log_prediction_samples(model, data_loader, device, threshold, num_samples=4,
             fig, axes = plt.subplots(1, 3, figsize=(12, 4))
             
             # Input
-            axes[0, 0].imshow(x_batch[i, 0].cpu().numpy(), cmap='gray')
-            axes[0, 0].set_title('Input')
-            axes[0, 0].axis('off')
+            axes[0].imshow(x_batch[i, 0].cpu().numpy(), cmap='gray')
+            axes[0].set_title('Input')
+            axes[0].axis('off')
             
             # Ground Truth
-            axes[0, 1].imshow(y_batch[i, 0].cpu().numpy(), cmap='gray')
-            axes[0, 1].set_title('Ground Truth')
-            axes[0, 1].axis('off')
+            axes[1].imshow(y_batch[i, 0].cpu().numpy(), cmap='gray')
+            axes[1].set_title('Ground Truth')
+            axes[1].axis('off')
             
             # Prediction
-            axes[0, 2].imshow(y_pred[i, 0].cpu().numpy(), cmap='gray')
-            axes[0, 2].set_title('Prediction')
-            axes[0, 2].axis('off')
+            axes[2].imshow(y_pred[i, 0].cpu().numpy(), cmap='gray')
+            axes[2].set_title('Prediction')
+            axes[2].axis('off')
 
             
             plt.tight_layout()
@@ -107,7 +107,7 @@ def training(flnm, epochs, batch_size, learning_rate, decay_rate, decay_step, in
              alpha=0.1, beta=0.9, seed = 0,run_id=None, wandb_project=None):
     """Run the training process and evaluate on test set."""
     # Setup paths
-    base_path = "src/models/unet/results"
+    base_path = "src/models/UNet/results"
     model_dir = f"{base_path}/best_models/{wandb_project}"
     pathlib.Path(model_dir).mkdir(parents=True, exist_ok=True)
     
@@ -225,7 +225,7 @@ def training(flnm, epochs, batch_size, learning_rate, decay_rate, decay_step, in
 
 if __name__ == "__main__":
     # argparser
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(description='Train UNet model')
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--res", type=int, default=128)
     parser.add_argument("--epochs", type=int, default=100)

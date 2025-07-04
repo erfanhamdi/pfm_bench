@@ -1,4 +1,7 @@
 data/
-src/models/unet/__pycache__/
-src/models/unet/results/
+src/models/UNet/__pycache__/
+src/models/UNet/results/
 wandb
+src/models/FNO/__pycache__/
+src/models/FNO/results
+
