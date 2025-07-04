@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pfm_bench"
+version = "0.1.0"
+description = "Towards Robust Surrogate Models: Benchmarking machine-learning surrogate models on phase-field modeling of brittle fracture"
+readme = "README.md"
+authors = [
+  { name = "Erfan Hamdi", email = "erfan@bu.edu" },
+  { name = "Emma Lejeune", email = "elejeune@bu.edu" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+
+dependencies = [
+  "easyDataverse==0.4.4",
+  "torch==2.7.1+cu128",
+  "torchaudio==2.7.1+cu128",
+  "torchvision==0.22.1+cu128",
+  "wandb==0.21.0",
+  "numpy==2.1.2",
+  "matplotlib==3.10.3",
+  "h5py==3.14.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=7.0",
+  "black>=24.0.0",
+  "isort>=5.10.0",
+  "flake8>=7.0.0",
+]
+
+[project.scripts]
+download-data = "download_data:main"
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+namespaces = true

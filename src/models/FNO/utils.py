@@ -102,14 +102,3 @@ class FNODataset(Dataset):
             return x_data, y_data, grid, data_seed # Return seed if requested
         else:
             return x_data, y_data, grid # Default behavior
-
-if __name__ == "__main__":
-    data_dir = "data/tension/spect"    
-    dataset = FNODataset(data_dir, split='train', initial_step=10, ds_size=-1)
-    x, y, grid = dataset[0]
-    print(f"Shapes x={x.shape}, y={y.shape}, grid={grid.shape}")
-    print("\n--- Testing with return_seed ---")
-    dataset_seed = FNODataset(data_dir, split='test', initial_step=10, ds_size=-1, return_seed=True)
-    x_s, y_s, g_s, seed = dataset_seed[0]
-    print(f"Returned Seed: {seed}")
-    print(f"Shapes x={x_s.shape}, y={y_s.shape}, grid={g_s.shape}")
