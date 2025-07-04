@@ -252,7 +252,9 @@ if __name__ == "__main__":
     beta = args.beta
     print(f'\n=== Training model {i} ===', flush=True)
     set_seed(i)
-    
+    case_name = data_dir.split('/')[-2]
+    decomp_name = data_dir.split('/')[-1]
+    model_name = f"UNet_{case_name}_{decomp_name}_{i}"
     # Train model
     train_losses, val_losses, test_loss, test_dice = run_training(
         data_dir = data_dir,
@@ -264,7 +266,7 @@ if __name__ == "__main__":
         in_channels=in_channels,
         channels=32,
         threshold=threshold,
-        model_name=f'unet-{i}-tension-{args.res}x{args.res}',
+        model_name=model_name,
         alpha=alpha,  # Weight for Dice loss
         beta=beta,    # Weight for Focal loss
         seed = i,

@@ -279,7 +279,10 @@ def run_training(continue_training: bool,
     model_dir = f"src/models/FNO/results/{wandb_project}/{case_name}_{decomp_name}"
     os.makedirs(model_dir, exist_ok=True)
     model_path = f"{model_dir}/FNO_{case_name}_{decomp_name}.pt"
-
+    
+    if model_name is None:
+        model_name = f"FNO_{case_name}_{decomp_name}_{seed}"
+        
     wandb.init(
         project=wandb_project,
         name=model_name,
@@ -396,7 +399,6 @@ if __name__ == "__main__":
     parser.add_argument('--width', type=int, default=20, help='Model width')
     parser.add_argument('--use_wandb', action='store_false', help='Enable wandb logging')
     parser.add_argument('--wandb_project', type=str, default="test-gh", help='Wandb project name')
-    parser.add_argument('--wandb_entity', type=str, default=None, help='Wandb entity name')
     parser.add_argument('--continue_training', action='store_true', help='Continue training from checkpoint')
     args = parser.parse_args()
     # create a mapping of args to kwargs
@@ -415,7 +417,6 @@ if __name__ == "__main__":
         'width': args.width,
         'use_wandb': args.use_wandb,
         'wandb_project': args.wandb_project,
-        'wandb_entity': args.wandb_entity,
         'continue_training': args.continue_training,
         'seed': args.seed,
         'res': args.res,
@@ -427,7 +428,7 @@ if __name__ == "__main__":
     run_training(**kwargs)
     
     # Finish wandb run
-    if not args.no_wandb:
+    if not args.use_wandb:
         wandb.finish()
     
     print("Training completed.")
