@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import pickle
 from metrics.Dice import compute_dice
 import os
+import argparse
 
 def load_fno_model_state(model_path, num_channels=3, modes=12, width=20, initial_step=10, device='cpu'):
     """Load a trained FNO model from a state dict path."""
@@ -49,39 +50,59 @@ def plot_pred(pred_dict, out_dir):
     axes[1, 0].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 0, 0])
     axes[1, 1].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 50, 0])
     axes[1, 2].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 100, 0])
-
     plt.savefig(f"{out_dir}/plot_pred.png")
     plt.close()
 
-def main(seeds, data_dir, model_path, out_dir, ds_size=-1, rollout_end_step=100, model_config=None, device='cpu'):
+def main(data_dir, model_path, out_dir, ds_size=-1, rollout_end_step=100, model_config=None, threshold_pred=0.5, threshold_gt=0.5, device='cpu'):
     test_dataset = FNODataset(datadir=data_dir, split='test', num_c=model_config['num_channels'], train_ratio=0.0, val_ratio=0.0, test_ratio=1.0, ds_size=ds_size, return_seed=True)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-    for seed in seeds:
-        case_name = data_dir.split('/')[-2]
-        decomp_name = data_dir.split('/')[-1]
-        # TODO: change this to the correct path
-        # model_path = f"{results_path}/FNO_{case_name}_{decomp_name}_{seed}.pth"
-        model = load_fno_model_state(model_path, **model_config, device=device)
-        pred_dict = evaluate(model, test_loader, model_config['initial_step'], rollout_end_step, device)
-        os.makedirs(out_dir, exist_ok=True)
-        pred_dict_dir = f"{out_dir}/preds_FNO_{case_name}_{decomp_name}_{seed}.pkl"
-        with open(pred_dict_dir, "wb") as f:
-            pickle.dump(pred_dict, f)
-        print(f"Predictions saved to {pred_dict_dir}")
-        compute_dice(pred_dict_dir, out_dir=out_dir, threshold_pred=0.5, threshold_gt=0.5)
-        print(f"Dice scores saved to {out_dir}/dice_scores.pkl")
-        plot_pred(pred_dict, out_dir)
-        print(f"Predictions plot saved to {out_dir}")
+    case_name = data_dir.split('/')[-2]
+    decomp_name = data_dir.split('/')[-1]
+    model = load_fno_model_state(model_path, **model_config, device=device)
+    pred_dict = evaluate(model, test_loader, model_config['initial_step'], rollout_end_step, device)
+    os.makedirs(out_dir, exist_ok=True)
+    pred_dict_dir = f"{out_dir}/preds_FNO_{case_name}_{decomp_name}_{seed}.pkl"
+    with open(pred_dict_dir, "wb") as f:
+        pickle.dump(pred_dict, f)
+    print(f"Predictions saved to {pred_dict_dir}")
+    compute_dice(pred_dict_dir, out_dir=out_dir, threshold_pred=threshold_pred, threshold_gt=threshold_gt)
+    print(f"Dice scores saved to {out_dir}/dice_scores.pkl")
+    plot_pred(pred_dict, out_dir)
+    print(f"Predictions plot saved to {out_dir}")
 
 if __name__ == "__main__":
-    seeds = [3]
-    data_dir = "data/tension/spect"
-    model_path = "/projectnb/lejlab2/erfan/PF_Bench/FNO/models/FNO-normalized-128-refactor/FNO_tension_miehe_c64x64_3_300.pt"
-    out_dir = "src/models/FNO/results/test_gh/preds"
+    parser = argparse.ArgumentParser(description='Evaluate FNO model')
+    parser.add_argument('--data_dir', type=str, default='data/tension/spect', help='Path to the dataset directory')
+    parser.add_argument('--model_path', type=str, required=True, help='Path to the trained model checkpoint')
+    parser.add_argument('--out_dir', type=str, default='src/models/FNO/results/test_gh/preds', help='Output directory for predictions')
+    parser.add_argument('--ds_size', type=int, default=-1, help='Dataset size limit (-1 for all)')
+    parser.add_argument('--rollout_end_step', type=int, default=100, help='End step for rollout prediction')
+    parser.add_argument('--num_channels', type=int, default=3, help='Number of input channels')
+    parser.add_argument('--modes', type=int, default=12, help='Number of Fourier modes')
+    parser.add_argument('--width', type=int, default=20, help='Model width')
+    parser.add_argument('--initial_step', type=int, default=10, help='Initial time steps')
+    parser.add_argument('--threshold_pred', type=float, default=0.5, help='Threshold for predictions')
+    parser.add_argument('--threshold_gt', type=float, default=0.5, help='Threshold for ground truth')
+    parser.add_argument('--device', type=str, default='cpu', help='Device to use (cpu/cuda)')
+    
+    args = parser.parse_args()
+    
+    # Create model config from arguments
     model_config = {
-        "num_channels": 3,
-        "modes": 12,
-        "width": 20,
-        "initial_step": 10,
+        "num_channels": args.num_channels,
+        "modes": args.modes,
+        "width": args.width,
+        "initial_step": args.initial_step,
     }
-    main(seeds, data_dir, model_path, out_dir, ds_size=10, rollout_end_step=100, model_config=model_config, device='cpu')
+    
+    main(
+        data_dir=args.data_dir,
+        model_path=args.model_path,
+        out_dir=args.out_dir,
+        ds_size=args.ds_size,
+        rollout_end_step=args.rollout_end_step,
+        model_config=model_config,
+        threshold_pred=args.threshold_pred,
+        threshold_gt=args.threshold_gt,
+        device=args.device
+    )

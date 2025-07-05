@@ -133,3 +133,37 @@ python src/models/FNO/train.py \
   --batch_size 4 \
   --learning_rate 1e-3
 ```
+# Evaluating the models
+You can evaluate the models by running the `evaluate.py` script for each model. It will save the predictions and dice scores in a dictionary in a pickle file.
+
+**Arguments:**
+* You can provide the threshold values for the prediciton and ground truth as the arguments to the `evaluate.py` scripts.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--model_path` | None | Path to the trained model checkpoint |
+| `--data_dir` | None | Path to the dataset directory |
+| `--out_dir` | None | Output directory for predictions |
+| `--ds_size` | -1 | Dataset size limit (-1 for all) |
+| `--threshold_pred` | 0.5 | Threshold for predictions |
+| `--threshold_gt` | 0.5 | Threshold for ground truth |
+
+**Example:**
+```bash
+python src/models/FNO/evaluate.py \
+  --model_path src/models/FNO/results/wandb_project/models/FNO_tension_miehe_c64x64_3_300.pt \
+  --data_dir data/tension/spect \
+  --out_dir src/models/FNO/results/test_gh/preds
+  --threshold_pred 0.5 \
+  --threshold_gt 0.5
+```
+
+**Example:**
+```bash
+python src/models/UNet/evaluate.py \
+  --model_path src/models/UNet/results/wandb_project/models/UNet_tension_spect_3.pkl \
+  --data_dir data/tension/spect \
+  --out_dir src/models/UNet/results/test_gh/preds
+  --threshold_pred 0.5 \
+  --threshold_gt 0.5
+```
