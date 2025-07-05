@@ -5,6 +5,8 @@ from torch.utils.data import DataLoader
 import numpy as np
 import matplotlib.pyplot as plt
 import pickle
+from metrics.Dice import compute_dice
+import os
 
 def load_fno_model_state(model_path, num_channels=3, modes=12, width=20, initial_step=10, device='cpu'):
     """Load a trained FNO model from a state dict path."""
@@ -31,17 +33,16 @@ def evaluate(model, data_loader, initial_step, rollout_end_step, device):
                 im = model(inp, grid)
                 pred = torch.cat((pred, im), -2)
                 x = torch.cat((x[..., 1:, :], im), dim=-2)
-            pred_dict['init'][seed[0]] = y[..., 0, :]  #[b, h, w, c]
+            pred_dict['init'][seed[0]] = y[..., 0:1, :]  #[b, h, w, t, c]
             pred_dict['gt'][seed[0]] = y  #[b, h, w, t, c]
             pred_dict['pred'][seed[0]] = pred  #[b, h, w, t, c]
     return pred_dict
 
 # TODO: only for testing
-def plot_pred(pred_dict):
+def plot_pred(pred_dict, out_dir):
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
     seed_keys = list(pred_dict['init'].keys())
-    print(seed_keys)
-    axes[0, 0].imshow(pred_dict['init'][seed_keys[0]][0, :, :, 0])
+    axes[0, 0].imshow(pred_dict['init'][seed_keys[0]][0, :, :, 0, 0])
     axes[0, 1].imshow(pred_dict['gt'][seed_keys[0]][0, :, :, 50, 0])
     axes[0, 2].imshow(pred_dict['gt'][seed_keys[0]][0, :, :, 100, 0])
     axes[0, 0].set_title(f"seed {seed_keys[0]}")
@@ -49,10 +50,10 @@ def plot_pred(pred_dict):
     axes[1, 1].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 50, 0])
     axes[1, 2].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 100, 0])
 
-    plt.savefig("src/models/FNO/results/preds/FNO_tension_miehe_c64x64_3_300.png")
+    plt.savefig(f"{out_dir}/plot_pred.png")
     plt.close()
 
-def main(seeds, data_dir, results_path, ds_size=-1, rollout_end_step=100, model_config=None, device='cpu'):
+def main(seeds, data_dir, model_path, out_dir, ds_size=-1, rollout_end_step=100, model_config=None, device='cpu'):
     test_dataset = FNODataset(datadir=data_dir, split='test', num_c=model_config['num_channels'], train_ratio=0.0, val_ratio=0.0, test_ratio=1.0, ds_size=ds_size, return_seed=True)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     for seed in seeds:
@@ -60,21 +61,27 @@ def main(seeds, data_dir, results_path, ds_size=-1, rollout_end_step=100, model_
         decomp_name = data_dir.split('/')[-1]
         # TODO: change this to the correct path
         # model_path = f"{results_path}/FNO_{case_name}_{decomp_name}_{seed}.pth"
-        model_path = results_path
         model = load_fno_model_state(model_path, **model_config, device=device)
         pred_dict = evaluate(model, test_loader, model_config['initial_step'], rollout_end_step, device)
-        with open(f"src/models/FNO/results/preds/FNO_{case_name}_{decomp_name}_{seed}.pkl", "wb") as f:
+        os.makedirs(out_dir, exist_ok=True)
+        pred_dict_dir = f"{out_dir}/preds_FNO_{case_name}_{decomp_name}_{seed}.pkl"
+        with open(pred_dict_dir, "wb") as f:
             pickle.dump(pred_dict, f)
-        plot_pred(pred_dict)
+        print(f"Predictions saved to {pred_dict_dir}")
+        compute_dice(pred_dict_dir, out_dir=out_dir, threshold_pred=0.5, threshold_gt=0.5)
+        print(f"Dice scores saved to {out_dir}/dice_scores.pkl")
+        plot_pred(pred_dict, out_dir)
+        print(f"Predictions plot saved to {out_dir}")
 
 if __name__ == "__main__":
     seeds = [3]
     data_dir = "data/tension/spect"
-    results_path = "/projectnb/lejlab2/erfan/PF_Bench/FNO/models/FNO-normalized-128-refactor/FNO_tension_miehe_c64x64_3_300.pt"
+    model_path = "/projectnb/lejlab2/erfan/PF_Bench/FNO/models/FNO-normalized-128-refactor/FNO_tension_miehe_c64x64_3_300.pt"
+    out_dir = "src/models/FNO/results/test_gh/preds"
     model_config = {
         "num_channels": 3,
         "modes": 12,
         "width": 20,
         "initial_step": 10,
     }
-    main(seeds, data_dir, results_path, ds_size=10, rollout_end_step=100, model_config=model_config, device='cpu')
+    main(seeds, data_dir, model_path, out_dir, ds_size=10, rollout_end_step=100, model_config=model_config, device='cpu')
