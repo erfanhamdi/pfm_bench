@@ -15,7 +15,8 @@ class UNetDataset(Dataset):
                  test_ratio=0.1,
                  ds_size=-1, 
                  num_c=1,
-                 apply_transforms=True):
+                 apply_transforms=True,
+                 return_seed=False):
         """
         Args:
             datadir: Path to the directory containing hdf5 files
@@ -31,7 +32,7 @@ class UNetDataset(Dataset):
         self.data_dir = datadir
         self.num_c = num_c
         self.apply_transforms = apply_transforms
-        
+        self.return_seed = return_seed
         # Discover HDF5 files and build (file_path, seed) mapping in one pass
         hdf5_files = sorted(glob.glob(os.path.join(self.data_dir, "*.hdf5")))
         if not hdf5_files:
@@ -110,8 +111,10 @@ class UNetDataset(Dataset):
                 y[1:self.num_c] = y[1:self.num_c] / scale_y
             
             x, y = self.transform(x, y)  
-            
-        return x.double(), y.double()
+        if self.return_seed:
+            return x, y, seed_name
+        else:
+            return x, y
 
 if __name__ == "__main__":
     data_dir = "data/tension/spect"

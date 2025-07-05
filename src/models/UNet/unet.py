@@ -79,7 +79,7 @@ class DiceLoss(nn.Module):
         self.threshold = threshold
     def forward(self, preds, targets):
         preds = torch.sigmoid(preds)  # Ensure predictions are in [0,1]
-        targets = targets > self.threshold
+        targets = (targets > self.threshold).float()  # Convert boolean to float
         preds = preds.view(-1)
         targets = targets.view(-1)
         intersection = (preds * targets).sum()
@@ -96,7 +96,7 @@ class FocalLoss(nn.Module):
 
     def forward(self, preds, targets):
         preds = torch.sigmoid(preds)  # Convert logits to probabilities
-        targets = (targets > self.threshold).double()
+        targets = (targets > self.threshold).float()  # Convert boolean to float
         bce_loss = F.binary_cross_entropy(preds, targets, reduction='none')
         focal_loss = self.alpha * (1 - preds) ** self.gamma * bce_loss
         return focal_loss.mean()

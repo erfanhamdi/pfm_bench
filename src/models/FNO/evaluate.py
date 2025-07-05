@@ -20,7 +20,7 @@ def load_fno_model_state(model_path, num_channels=3, modes=12, width=20, initial
 
 def evaluate(model, data_loader, initial_step, rollout_end_step, device):
     model.eval()
-    pred_dict = {}
+    pred_dict = {"init":{}, "gt": {}, "pred": {}}
     with torch.no_grad():
         for batch_idx, (x, y, grid, seed) in enumerate(data_loader):
             x, y, grid = x.to(device), y.to(device), grid.to(device)
@@ -31,22 +31,24 @@ def evaluate(model, data_loader, initial_step, rollout_end_step, device):
                 im = model(inp, grid)
                 pred = torch.cat((pred, im), -2)
                 x = torch.cat((x[..., 1:, :], im), dim=-2)
-            pred_dict[seed] = pred
+            pred_dict['init'][seed[0]] = y[..., 0, :]  #[b, h, w, c]
+            pred_dict['gt'][seed[0]] = y  #[b, h, w, t, c]
+            pred_dict['pred'][seed[0]] = pred  #[b, h, w, t, c]
     return pred_dict
 
 # TODO: only for testing
 def plot_pred(pred_dict):
     fig, axes = plt.subplots(2, 3, figsize=(15, 10))
-    seed_keys = list(pred_dict.keys())
+    seed_keys = list(pred_dict['init'].keys())
     print(seed_keys)
-    axes[0, 0].imshow(pred_dict[seed_keys[0]][0, :, :, 0, 0])
-    axes[0, 1].imshow(pred_dict[seed_keys[0]][0, :, :, 50, 0])
-    axes[0, 2].imshow(pred_dict[seed_keys[0]][0, :, :, 100, 0])
+    axes[0, 0].imshow(pred_dict['init'][seed_keys[0]][0, :, :, 0])
+    axes[0, 1].imshow(pred_dict['gt'][seed_keys[0]][0, :, :, 50, 0])
+    axes[0, 2].imshow(pred_dict['gt'][seed_keys[0]][0, :, :, 100, 0])
     axes[0, 0].set_title(f"seed {seed_keys[0]}")
-    axes[1, 0].imshow(pred_dict[seed_keys[1]][0, :, :, 0, 0])
-    axes[1, 1].imshow(pred_dict[seed_keys[1]][0, :, :, 50, 0])
-    axes[1, 2].imshow(pred_dict[seed_keys[1]][0, :, :, 100, 0])
-    axes[1, 0].set_title(f"seed {seed_keys[1]}")
+    axes[1, 0].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 0, 0])
+    axes[1, 1].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 50, 0])
+    axes[1, 2].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 100, 0])
+
     plt.savefig("src/models/FNO/results/preds/FNO_tension_miehe_c64x64_3_300.png")
     plt.close()
 

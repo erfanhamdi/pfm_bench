@@ -120,8 +120,9 @@ def run_training(data_dir: str,
     decomp_name = data_dir.split('/')[-1]
     case_name = data_dir.split('/')[-2]
     model_dir = f"src/models/UNet/results/{wandb_project}/{case_name}_{decomp_name}"
-    os.makedirs(model_dir, exist_ok=True)
-    model_path = f"{model_dir}/UNet_{case_name}_{decomp_name}.pt"
+    # TODO: have the same model saving structure for the FNO
+    model_path = f"{model_dir}/seed_{seed}"
+    os.makedirs(model_path, exist_ok=True)
     
     wandb.init(
         project=wandb_project,
@@ -152,7 +153,7 @@ def run_training(data_dir: str,
     test_loader = DataLoader(test_dataset, batch_size=batch_size)
     
     # Initialize model
-    model = UNet(in_channels, channels).double().to(device)
+    model = UNet(in_channels, channels).to(device)
     
     # Log model architecture to wandb
     wandb.watch(model, log="all", log_freq=10)
@@ -198,15 +199,7 @@ def run_training(data_dir: str,
         print(f"Epoch {epoch+1} | Train Loss: {train_loss:.6f} | Val Loss: {val_loss:.6f} | LR: {current_lr:.8f}", flush=True)
         
         # Save best model
-        if val_loss < min_val_loss:
-            min_val_loss = val_loss
-            best_model_path = f"{model_path}/{model_name}_best_{epoch}_val_loss_{val_loss:.6f}.pt"
-            torch.save(model.state_dict(), best_model_path)
-            # Log best model path
-            wandb.save(best_model_path)
-            wandb.log({"best_val_loss": val_loss, "best_epoch": epoch})
-            print(f"Saved new best model with validation loss: {val_loss:.6f}")
-        
+        # TODO: saving the best model should be the same as FNO
         # Save intermediate models and log predictions
         if epoch % 30 == 0:
             torch.save(model.state_dict(), f"{model_path}/aug_{model_name}_intermediate_{epoch}.pt")
