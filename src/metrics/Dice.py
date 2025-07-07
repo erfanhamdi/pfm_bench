@@ -1,24 +1,29 @@
 import pickle
 import os
+import numpy as np
+import h5py
 import torch
 
 def load_pred_dict(pred_dict_path):
-    with open(pred_dict_path, 'rb') as f:
-        pred_dict = pickle.load(f)
+    with h5py.File(pred_dict_path, 'r') as f:
+        pred_dict = {key: f[key][:] for key in f.keys()}
     return pred_dict
 
 
 def dice(pred, gt):
-    intersection = torch.sum(pred * gt)
-    return (2. * intersection) / (torch.sum(pred) + torch.sum(gt))
+    intersection = torch.sum(pred * gt, axis=(1, 2))
+    return (2. * intersection) / (torch.sum(pred, axis=(1, 2)) + torch.sum(gt, axis=(1, 2)))
 
-def compute_dice(pred_dict_path, out_dir, threshold_pred=0.5, threshold_gt=0.5):
+def compute_dice_from_pred_dict(pred_dict_path, out_dir, threshold_pred=0.5, threshold_gt=0.5):
     pred_dict = load_pred_dict(pred_dict_path)
-    dice_scores = {}
-    for seed in pred_dict['init'].keys():
-        pred = (pred_dict['pred'][seed] > threshold_pred).float()
-        gt = (pred_dict['gt'][seed] > threshold_gt ).float()
-        dice_scores[seed] = dice(pred, gt)
+    pred = (pred_dict['pred'][..., 0] > threshold_pred).astype(np.float32)
+    gt = (pred_dict['gt'][..., 0] > threshold_gt).astype(np.float32)
+    dice_scores = dice(pred, gt)
     with open(os.path.join(out_dir, "dice_scores.pkl"), "wb") as f:
         pickle.dump(dice_scores, f)
     return dice_scores
+
+def compute_dice_from_pred_tensor(pred_tensor, gt_tensor, threshold_pred=0.5, threshold_gt=0.5):
+    pred = (pred_tensor > threshold_pred).float()
+    gt = (gt_tensor > threshold_gt).float()
+    return dice(pred, gt)

@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 from easyDataverse import Dataverse
 
 # Mapping of available datasets and their DOIs
@@ -18,6 +19,57 @@ DATASET_DOIS = {
         "spect": "doi:10.7910/DVN/G3QRE0",
     },
 }
+
+
+def pad_filenames(directory: str):
+    """Rename files with numeric names to have 8-digit zero-padded names.
+    
+    Parameters
+    ----------
+    directory : str
+        Directory containing files to rename.
+    """
+    if not os.path.exists(directory):
+        return
+    
+    for filename in os.listdir(directory):
+        filepath = os.path.join(directory, filename)
+        
+        # Skip directories
+        if os.path.isdir(filepath):
+            continue
+            
+        # Extract the name and extension
+        name, ext = os.path.splitext(filename)
+        
+        # Check if the name is purely numeric
+        if name.isdigit():
+            # Pad with zeros to make it 8 digits
+            new_name = name.zfill(8)
+            new_filename = new_name + ext
+            new_filepath = os.path.join(directory, new_filename)
+            
+            if filename != new_filename:  # Only rename if different
+                print(f"Renaming: {filename} -> {new_filename}")
+                os.rename(filepath, new_filepath)
+        
+        # Also handle names that start with numbers (e.g., "123_data.txt" -> "00000123_data.txt")
+        elif re.match(r'^\d+', name):
+            # Extract the leading digits
+            match = re.match(r'^(\d+)(.*)$', name)
+            if match:
+                number_part = match.group(1)
+                rest_part = match.group(2)
+                
+                # Pad the number part to 8 digits
+                padded_number = number_part.zfill(8)
+                new_name = padded_number + rest_part
+                new_filename = new_name + ext
+                new_filepath = os.path.join(directory, new_filename)
+                
+                if filename != new_filename:  # Only rename if different
+                    print(f"Renaming: {filename} -> {new_filename}")
+                    os.rename(filepath, new_filepath)
 
 
 def download_dataset(case: str, decomp: str, outdir: str | None = None):
@@ -51,6 +103,12 @@ def download_dataset(case: str, decomp: str, outdir: str | None = None):
     dataset = dataverse.load_dataset(pid=doi, filedir=outdir)
 
     print(f"Dataset downloaded successfully to {outdir}")
+    
+    # Pad filenames with zeros to have 8-digit names
+    print("Renaming files to have 8-digit zero-padded names")
+    pad_filenames(outdir)
+    print("File renaming completed.")
+    
     return dataset
 
 

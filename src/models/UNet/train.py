@@ -119,9 +119,9 @@ def run_training(data_dir: str,
     
     decomp_name = data_dir.split('/')[-1]
     case_name = data_dir.split('/')[-2]
-    model_dir = f"src/models/UNet/results/{wandb_project}/{case_name}_{decomp_name}"
+    model_dir = f"src/models/UNet/results/{wandb_project}/{case_name}_{decomp_name}/seed_{seed}"
     # TODO: have the same model saving structure for the FNO
-    model_path = f"{model_dir}/seed_{seed}"
+    model_path = f"{model_dir}/models"
     os.makedirs(model_path, exist_ok=True)
     
     wandb.init(
@@ -202,11 +202,11 @@ def run_training(data_dir: str,
         # TODO: saving the best model should be the same as FNO
         # Save intermediate models and log predictions
         if epoch % 30 == 0:
-            torch.save(model.state_dict(), f"{model_path}/aug_{model_name}_intermediate_{epoch}.pt")
+            torch.save(model.state_dict(), f"{model_path}/UNet_epoch_{epoch}.pt")
             log_prediction_samples(model, val_loader, device, threshold, num_samples=4, prefix="val")
     
     # Save final model
-    final_model_path = f"{model_dir}/{model_name}_final.pt"
+    final_model_path = f"{model_path}/UNet_final.pt"
     torch.save(model.state_dict(), final_model_path)
     wandb.save(final_model_path)
     print(f"Training completed. Final validation loss: {val_losses[-1]:.6f}")
@@ -218,7 +218,7 @@ def run_training(data_dir: str,
 if __name__ == "__main__":
     # argparser
     parser = argparse.ArgumentParser(description='Train UNet model')
-    parser.add_argument("--seed", type=int, default=0)
+    parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--res", type=int, default=128)
     parser.add_argument("--epochs", type=int, default=100)
     parser.add_argument("--batch_size", type=int, default=16)
@@ -230,6 +230,7 @@ if __name__ == "__main__":
     parser.add_argument("--beta", type=float, default=0.5)
     parser.add_argument("--threshold", type=float, default=0.4)
     parser.add_argument("--data_dir", type=str, default="data/tension/spect")
+    parser.add_argument("--wandb_project", type=str, default="test-UNet-Training")
     args = parser.parse_args()
     # Train multiple models with different random seeds
     i = args.seed
@@ -263,6 +264,6 @@ if __name__ == "__main__":
         alpha=alpha,  # Weight for Dice loss
         beta=beta,    # Weight for Focal loss
         seed = i,
-        wandb_project=f"test-gh"
+        wandb_project=args.wandb_project
     )
     

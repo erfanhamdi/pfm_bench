@@ -24,9 +24,9 @@ def get_model_path(data_dir: str, seed: int, wandb_project: str) -> str:
     """Generate model path based on dataset name and seed."""
     decomp_name = data_dir.split('/')[-1]
     case_name = data_dir.split('/')[-2]
-    model_dir = f"src/models/FNO/results/{wandb_project}/{case_name}_{decomp_name}"
+    model_dir = f"src/models/FNO/results/{wandb_project}/{case_name}_{decomp_name}/seed_{seed}/models"
     
-    return f"{model_dir}/FNO_{case_name}_{decomp_name}_{seed}.pt"
+    return model_dir
 
 def log_prediction_samples(true_data, pred_data, epoch: int, 
                          initial_step: int, t_train: int) -> Dict[str, Any]:
@@ -202,11 +202,11 @@ def load_checkpoint_if_continuing(continue_training: bool, data_dir: str, seed: 
     if not continue_training:
         return start_epoch, min_val_loss
         
-    model_path = get_model_path(data_dir, seed, wandb_project)
-    print(f"Model path: {model_path}")
+    model_dir = get_model_path(data_dir, seed, wandb_project)
+    print(f"Model directory: {model_dir}")
     print('Restoring model from checkpoint...')
     
-    model_lists = glob.glob(f"{model_path}/*.pt")
+    model_lists = glob.glob(f"{model_dir}/*.pt")
     
     if model_lists:
         model_epochs = []
@@ -276,9 +276,8 @@ def run_training(continue_training: bool,
     
     decomp_name = data_dir.split('/')[-1]
     case_name = data_dir.split('/')[-2]
-    model_dir = f"src/models/FNO/results/{wandb_project}/{case_name}_{decomp_name}"
+    model_dir = f"src/models/FNO/results/{wandb_project}/{case_name}_{decomp_name}/seed_{seed}/models"
     os.makedirs(model_dir, exist_ok=True)
-    model_path = f"{model_dir}/FNO_{case_name}_{decomp_name}.pt"
     
     if model_name is None:
         model_name = f"FNO_{case_name}_{decomp_name}_{seed}"
@@ -306,13 +305,10 @@ def run_training(continue_training: bool,
     # Create datasets and loaders
     train_dataset = FNODataset(data_dir, split='train', initial_step=initial_step, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, ds_size=-1)
     val_dataset = FNODataset(data_dir, split='val', initial_step=initial_step, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, ds_size=-1)
-    test_dataset = FNODataset(data_dir, split='test', initial_step=initial_step, train_ratio=0.8, val_ratio=0.1, test_ratio=0.1, ds_size=-1)
     
     train_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=True)
     val_loader = DataLoader(val_dataset, batch_size=batch_size, num_workers=num_workers, shuffle=False)
-    test_loader = DataLoader(test_dataset, batch_size=5, num_workers=num_workers, shuffle=False)
 
-    
     # Initialize model
     _, sample_data, _ = next(iter(train_loader))
     dimensions = len(sample_data.shape) - 3
@@ -362,7 +358,7 @@ def run_training(continue_training: bool,
             val_l2_full = validate(model, val_loader, loss_fn, initial_step, t_train,epoch, device)
             
             # Save model checkpoint
-            checkpoint_path = f"{model_dir}/FNO_{case_name}_{decomp_name}_{epoch}.pt"
+            checkpoint_path = f"{model_dir}/FNO_epoch_{epoch}.pt"
             save_checkpoint(model, optimizer,epoch, val_l2_full, checkpoint_path)
             
         else:
@@ -387,7 +383,7 @@ if __name__ == "__main__":
     parser.add_argument('--t_train', type=int, default=101, help='Maximum time step to train')
     parser.add_argument('--model_update', type=int, default=10, help='How often to update the model')
     parser.add_argument('--data_dir', type=str, default='data/tension/spect', help='Path to the dataset file')
-    parser.add_argument('--epochs', type=int, default=1001, help='Number of training epochs')
+    parser.add_argument('--epochs', type=int, default=300, help='Number of training epochs')
     parser.add_argument('--batch_size', type=int, default=4, help='Batch size for data loaders')
     parser.add_argument('--learning_rate', type=float, default=1.e-3, help='Learning rate')
     parser.add_argument('--scheduler_step', type=int, default=100, help='Steps for learning rate scheduler')
@@ -398,7 +394,7 @@ if __name__ == "__main__":
     parser.add_argument('--modes', type=int, default=12, help='Number of Fourier modes')
     parser.add_argument('--width', type=int, default=20, help='Model width')
     parser.add_argument('--use_wandb', action='store_false', help='Enable wandb logging')
-    parser.add_argument('--wandb_project', type=str, default="test-gh", help='Wandb project name')
+    parser.add_argument('--wandb_project', type=str, default="test-FNO-Training", help='Wandb project name')
     parser.add_argument('--continue_training', action='store_true', help='Continue training from checkpoint')
     args = parser.parse_args()
     # create a mapping of args to kwargs
