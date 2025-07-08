@@ -182,3 +182,14 @@ You can ensemble the models by running the `ensembling.py` script.
 |-----------|---------|-------------|
 | `--model` | None | Model type (FNO or UNet) |
 | `--config` | None | Path to the ensembling config file |
+
+# Citation
+If you use this code or the datasets in your research, please cite:
+```
+@article{erfan2025towards,
+  title={Towards Robust Surrogate Models: Benchmarking Machine Learning on Phase Field Modeling of Brittle Fracture},
+  author={Erfan Hamdi and Emma Lejeune},
+  journal={arXiv preprint arXiv:2507.01301},
+  year={2025}
+}
+```
