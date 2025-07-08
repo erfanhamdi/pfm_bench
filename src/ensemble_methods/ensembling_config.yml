@@ -38,17 +38,17 @@ stacking:
 # ensemble methods:
 hard_voting:
   vote_cutoff: 3
-  threshold_pred: 0.6
-  threshold_gt: 0.4
+  threshold_pred: 0.15
+  threshold_gt: 0.2
 
 soft_voting:
-  threshold_pred: 0.6
-  threshold_gt: 0.4
+  threshold_pred: 0.5
+  threshold_gt: 0.5
 
 stacking:
   model_address: 'src/ensemble_methods/stacker_models/stacker_model_FNO.pth'
-  threshold_pred: 0.6
-  threshold_gt: 0.4
+  threshold_pred: 0.5
+  threshold_gt: 0.1
   train_config:
     out_dir: 'src/ensemble_methods/stacker_models'
     epochs: 50

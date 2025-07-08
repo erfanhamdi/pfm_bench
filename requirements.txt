@@ -1,8 +1,0 @@
-easyDataverse==0.4.4
-torch==2.7.1+cu128
-torchaudio==2.7.1+cu128
-torchvision==0.22.1+cu128
-wandb==0.21.0
-numpy==2.1.2
-matplotlib==3.10.3
-h5py==3.14.0

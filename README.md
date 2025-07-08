@@ -5,10 +5,10 @@ This repository provides script for downloading the datasets, training the basel
 
 ## Prerequisites
 
-Install the required packages:
+Install the project in editable mode:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Downloading Datasets
@@ -61,6 +61,9 @@ data/
 |      └── 19030.hdf5
 |      └── ...
 ```
+## Using the pretrained models
+You can also download the pretrained models and the compressed predictions from [here](https://doi.org/10.7910/DVN/AA86HP) to reproduce the results in the paper.
+
 ## Training the baseline models
 ## UNet
 You can find the code for training the UNet model in `src/models/UNet/`:
@@ -167,3 +170,13 @@ python src/models/UNet/evaluate.py \
   --threshold_pred 0.5 \
   --threshold_gt 0.5
 ```
+# Ensembling the models
+You can ensemble the models by running the `ensembling.py` script.
+
+**Arguments:**
+* You can provide the parameters needed for the ensembling methods using the `ensembling_config.yml` file.
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `--model` | None | Model type (FNO or UNet) |
+| `--config` | None | Path to the ensembling config file |
