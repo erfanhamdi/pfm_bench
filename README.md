@@ -2,6 +2,7 @@
 
 Dataset for benchmarking ML surrogate models on phase-field modeling of fracture.
 This repository provides script for downloading the datasets, training the baseline models and ensemble learning methods that was discussed in the paper.
+![img](figures/intro.png)
 
 ## Prerequisites
 
@@ -65,6 +66,7 @@ data/
 You can also download the pretrained models and the compressed predictions from [here](https://doi.org/10.7910/DVN/AA86HP) to reproduce the results in the paper.
 
 ## Training the baseline models
+![img](figures/FNOs.png)
 ## UNet
 You can find the code for training the UNet model in `src/models/UNet/`:
 
