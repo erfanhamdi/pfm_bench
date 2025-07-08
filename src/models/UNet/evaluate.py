@@ -39,6 +39,7 @@ def evaluate(model, data_loader, device):
             output_shape = [0, 2, 3, 1]
             x, y = x.to(device), y.to(device)
             pred = model(x)
+            pred = torch.sigmoid(pred)
             pred_dict['init'][seed[0]] = x.permute(output_shape)  #[b, h, w, c]
             pred_dict['gt'][seed[0]] = y.permute(output_shape)  #[b, h, w, c]
             pred_dict['pred'][seed[0]] = pred.permute(output_shape)  #[b, h, w, c]
@@ -48,7 +49,7 @@ def evaluate(model, data_loader, device):
 def plot_pred(pred_dict, out_dir):
     fig, axes = plt.subplots(3, 2, figsize=(15, 10))
     seed_keys = list(pred_dict['init'].keys())
-    axes[0, 0].imshow(pred_dict['init'][seed_keys[0]][0, :, :, 0, 0])
+    axes[0, 0].imshow(pred_dict['init'][0, :, :, 0, 0])
     axes[1, 0].imshow(pred_dict['gt'][seed_keys[0]][0, :, :, 0, 0])
     axes[2, 0].imshow(pred_dict['pred'][seed_keys[0]][0, :, :, 0, 0])
     axes[0, 0].set_title(f"seed {seed_keys[0]}")
@@ -62,7 +63,7 @@ def plot_pred(pred_dict, out_dir):
     plt.close()
 
 def main(data_dir, model_path, out_dir, ds_size=-1, model_config=None, threshold_pred=0.5, threshold_gt=0.5, device='cpu', seed=1):
-    test_dataset = UNetDataset(datadir=data_dir, split='test', num_c=model_config['num_channels'], train_ratio=0.8, val_ratio=0.0, test_ratio=0.2, ds_size=ds_size, return_seed=True)
+    test_dataset = UNetDataset(datadir=data_dir, split='test', num_c=model_config['num_channels'], train_ratio=0.8, val_ratio=0.0, test_ratio=0.2, ds_size=ds_size, return_seed=True, apply_transforms=False)
     test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
     print(f"Test dataset size: {len(test_dataset)}")
     case_name = data_dir.split('/')[-2]
@@ -90,8 +91,8 @@ def main(data_dir, model_path, out_dir, ds_size=-1, model_config=None, threshold
     print(f"Predictions saved to {pred_dict_dir}")
     compute_dice_from_pred_dict(pred_dict_dir, out_dir=out_dir, threshold_pred=threshold_pred, threshold_gt=threshold_gt)
     print(f"Dice scores saved to {out_dir}/dice_scores.pkl")
-    plot_pred(pred_dict, out_dir)
-    print(f"Predictions plot saved to {out_dir}")
+    # plot_pred(pred_dict, out_dir)
+    # print(f"Predictions plot saved to {out_dir}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Evaluate UNet model')

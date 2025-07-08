@@ -32,7 +32,7 @@ def stacking(ensemble_loader, model=None, model_address=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--model', type=str, default='FNO', choices=['FNO', 'UNet'])
+    parser.add_argument('--model', type=str, default='UNet', choices=['FNO', 'UNet'])
     parser.add_argument('--config', type=str, default='src/ensemble_methods/ensembling_config.yml')
     args = parser.parse_args()
     print(f"Using config: {args.config}")
@@ -71,11 +71,11 @@ if __name__ == "__main__":
     print(f"Soft voting mean Dice score: {dice_score.mean()}")
     
     # stacking
-    meta_train_loader = DataLoader(meta_train_ds, batch_size=stacking_config['train_config']['batch_size'], shuffle=True)
-    model = train_stacking(meta_train_loader, stacking_config['threshold_gt'], stacking_config['train_config'])
-    # to use a trained model, use the following line:
-    # model = Stacker()
-    # model.load_state_dict(torch.load(stacking_config['model_address']))
-    ensemble_preds, ensemble_gt = stacking(meta_test_loader, model)
-    dice_score = compute_dice_from_pred_tensor(ensemble_preds.squeeze(1), ensemble_gt, threshold_pred=stacking_config['threshold_pred'], threshold_gt=stacking_config['threshold_gt'])
-    print(f"Stacking mean Dice score: {dice_score.mean()}")
+    # meta_train_loader = DataLoader(meta_train_ds, batch_size=stacking_config['train_config']['batch_size'], shuffle=True)
+    # model = train_stacking(meta_train_loader, stacking_config['threshold_gt'], stacking_config['train_config'])
+    # # to use a trained model, use the following line:
+    # # model = Stacker()
+    # # model.load_state_dict(torch.load(stacking_config['model_address']))
+    # ensemble_preds, ensemble_gt = stacking(meta_test_loader, model)
+    # dice_score = compute_dice_from_pred_tensor(ensemble_preds.squeeze(1), ensemble_gt, threshold_pred=stacking_config['threshold_pred'], threshold_gt=stacking_config['threshold_gt'])
+    # print(f"Stacking mean Dice score: {dice_score.mean()}")

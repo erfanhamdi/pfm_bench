@@ -78,8 +78,8 @@ class DiceLoss(nn.Module):
         self.smooth = smooth
         self.threshold = threshold
     def forward(self, preds, targets):
-        preds = torch.sigmoid(preds)  # Ensure predictions are in [0,1]
-        targets = (targets > self.threshold).float()  # Convert boolean to float
+        preds = torch.sigmoid(preds)
+        targets = (targets > self.threshold).float()
         preds = preds.view(-1)
         targets = targets.view(-1)
         intersection = (preds * targets).sum()

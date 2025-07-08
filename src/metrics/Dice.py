@@ -18,6 +18,8 @@ def compute_dice_from_pred_dict(pred_dict_path, out_dir, threshold_pred=0.5, thr
     pred_dict = load_pred_dict(pred_dict_path)
     pred = (pred_dict['pred'][..., 0] > threshold_pred).astype(np.float32)
     gt = (pred_dict['gt'][..., 0] > threshold_gt).astype(np.float32)
+    pred = torch.from_numpy(pred)
+    gt = torch.from_numpy(gt)
     dice_scores = dice(pred, gt)
     with open(os.path.join(out_dir, "dice_scores.pkl"), "wb") as f:
         pickle.dump(dice_scores, f)

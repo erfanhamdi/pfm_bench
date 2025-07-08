@@ -7,11 +7,11 @@ seed_pred_list:
     - "src/models/FNO/results/test-FNO-Training/tension_spect/seed_4/preds/preds_FNO_tension_spect_4.hdf5"
     - "src/models/FNO/results/test-FNO-Training/tension_spect/seed_5/preds/preds_FNO_tension_spect_5.hdf5"
   UNet:
-    - "src/models/UNet/results/test-gh/preds/preds_UNet_gh_1.hdf5"
-    - "src/models/UNet/results/test-gh/preds/preds_UNet_gh_2.hdf5"
-    - "src/models/UNet/results/test-gh/preds/preds_UNet_gh_3.hdf5"
-    - "src/models/UNet/results/test-gh/preds/preds_UNet_gh_4.hdf5"
-    - "src/models/UNet/results/test-gh/preds/preds_UNet_gh_5.hdf5"
+    - "src/models/UNet/results/test-UNet-Training/tension_spect/seed_0/preds/preds_UNet_tension_spect_0.hdf5"
+    - "src/models/UNet/results/test-UNet-Training/tension_spect/seed_1/preds/preds_UNet_tension_spect_1.hdf5"
+    - "src/models/UNet/results/test-UNet-Training/tension_spect/seed_2/preds/preds_UNet_tension_spect_2.hdf5"
+    - "src/models/UNet/results/test-UNet-Training/tension_spect/seed_3/preds/preds_UNet_tension_spect_3.hdf5"
+    - "src/models/UNet/results/test-UNet-Training/tension_spect/seed_4/preds/preds_UNet_tension_spect_4.hdf5"
 
 # ensemble methods:
 hard_voting:
@@ -27,6 +27,28 @@ stacking:
   model_address: 'src/ensemble_methods/stacker_models/stacker_model_FNO.pth'
   threshold_pred: 0.5
   threshold_gt: 0.1
+  train_config:
+    out_dir: 'src/ensemble_methods/stacker_models'
+    epochs: 50
+    learning_rate: 0.001
+    weight_decay: 0.0001
+    patience: 3
+    batch_size: 4
+
+# ensemble methods:
+hard_voting:
+  vote_cutoff: 3
+  threshold_pred: 0.6
+  threshold_gt: 0.4
+
+soft_voting:
+  threshold_pred: 0.6
+  threshold_gt: 0.4
+
+stacking:
+  model_address: 'src/ensemble_methods/stacker_models/stacker_model_FNO.pth'
+  threshold_pred: 0.6
+  threshold_gt: 0.4
   train_config:
     out_dir: 'src/ensemble_methods/stacker_models'
     epochs: 50
