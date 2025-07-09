@@ -75,10 +75,18 @@ In the normalized formulation, mat_E=1, w1=1, and only nu and l0 are the propert
 numr_dict = {"alpha_constraint": 'nonsmooth', "gradient_type": 'numerical'}
 PFF_model_dict = {"PFF_model" : 'AT2', "se_split" : split_type, "tol_ir" : 5e-3}
 mat_prop_dict = {"mat_E" : 1.0, "mat_nu" : 1/3, "w1" : 1.0, "l0" : 0.01}
-crack_file_address = "/projectnb/lejlab2/erfan/pfm_ds/initial_cracks/19389.npy"
-crack_coords = np.load(crack_file_address).astype(np.float32)
-A_ = torch.tensor(crack_coords[:, 0], device=device)
-B_ = torch.tensor(crack_coords[:, 1], device=device)
+
+A_ = torch.tensor([[0.308514, 1.531184], [0.605291, 1.511563], [1.128942, 1.518921],
+                [1.517694, 1.412228], [0.268045, 0.819902], [0.829713, 0.903294],
+                [1.456377, 0.994043], [0.326910, 0.368605], [0.908199, 0.465487],
+                [1.436755, 0.364926]], device=device)    
+
+B_ = torch.tensor([[0.488788, 1.711458], [0.713210, 1.332516], [1.359495, 1.694289],
+             [1.673441, 1.229502], [0.411528, 0.991591], [1.087246, 0.957253],
+             [1.592502, 0.819902], [0.482656, 0.520673], [1.090925, 0.346531],
+             [1.624387, 0.493693]], device=device)
+
+
 thetas = []
 xs = []
 ys = []
