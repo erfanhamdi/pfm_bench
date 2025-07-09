@@ -74,7 +74,7 @@ In the normalized formulation, mat_E=1, w1=1, and only nu and l0 are the propert
 '''
 numr_dict = {"alpha_constraint": 'nonsmooth', "gradient_type": 'numerical'}
 PFF_model_dict = {"PFF_model" : 'AT2', "se_split" : split_type, "tol_ir" : 5e-3}
-mat_prop_dict = {"mat_E" : 1.0, "mat_nu" : 1/3, "w1" : 1.0, "l0" : 0.01}
+mat_prop_dict = {"mat_E" : 1.0, "mat_nu" : 1/3, "w1" : 1.0, "l0" : 0.02}
 
 A_ = torch.tensor([[0.308514, 1.531184], [0.605291, 1.511563], [1.128942, 1.518921],
                 [1.517694, 1.412228], [0.268045, 0.819902], [0.829713, 0.903294],
@@ -143,10 +143,8 @@ Current implementation only accepts discretization with triangular elements.
 coarse_mesh_file: mesh is fine only where crack is initially present (for efficient pretraining)
 fine_mesh_file: fine discretization also where crack is expected to propagate.
 '''
-# coarse_mesh_file = "/projectnb/lejlab2/erfan/PF_Bench/pidl-mod/phase-field-fracture-with-pidl/examples/Random/meshed_geom1.msh"
-# fine_mesh_file = "/projectnb/lejlab2/erfan/PF_Bench/pidl-mod/phase-field-fracture-with-pidl/examples/Random/meshed_geom2.msh"
-coarse_mesh_file = "/projectnb/lejlab2/erfan/PF_Bench/pidl-mod/examples/Random/varpinn_mesh_93k_1-1.msh"
-fine_mesh_file = "/projectnb/lejlab2/erfan/PF_Bench/pidl-mod/examples/Random/varpinn_mesh_371k_1-1.msh"
+coarse_mesh_file = "src/models/DRM/paper_pattern/varpinn_mesh_93k_1-1.msh"
+fine_mesh_file = "src/models/DRM/paper_pattern/varpinn_mesh_371k_1-1.msh"
 ## #############################################################################
 ## #############################################################################
 

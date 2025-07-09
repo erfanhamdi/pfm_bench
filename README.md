@@ -100,7 +100,7 @@ python src/models/unet/train.py \
   --learning_rate 5e-5
 ```
 
-### FNO
+## FNO
 You can find the code for training the FNO model in `src/models/FNO/`:
 **Files:**
 * `fno.py` - Network definition with spectral convolution blocks
@@ -137,6 +137,11 @@ python src/models/FNO/train.py \
   --epochs 500 \
   --batch_size 4 \
   --learning_rate 1e-3
+```
+## DRM
+You can find the code to reproduce the results in the PINN section of the paper in the `src/DRM` directory, you have to run the `src/DRM/paper_pattern/main.py` code with the network architecture.
+```bash
+python src/models/DRM/paper_pattern/main.py 6 100 0 TrainableReLU 3.0 volumetric
 ```
 # Evaluating the models
 You can evaluate the models by running the `evaluate.py` script for each model. It will save the predictions and dice scores in a dictionary in a pickle file.
