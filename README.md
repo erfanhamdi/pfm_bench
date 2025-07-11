@@ -191,10 +191,13 @@ You can ensemble the models by running the `ensembling.py` script.
 # Citation
 If you use this code or the datasets in your research, please cite:
 ```
-@article{erfan2025towards,
-  title={Towards Robust Surrogate Models: Benchmarking Machine Learning on Phase Field Modeling of Brittle Fracture},
-  author={Erfan Hamdi and Emma Lejeune},
-  journal={arXiv preprint arXiv:2507.01301},
-  year={2025}
+@misc{hamdi2025robust,
+      title={Towards Robust Surrogate Models: Benchmarking Machine Learning Approaches to Expediting Phase Field Simulations of Brittle Fracture}, 
+      author={Erfan Hamdi and Emma Lejeune},
+      year={2025},
+      eprint={2507.07237},
+      archivePrefix={arXiv},
+      primaryClass={cs.LG},
+      url={https://arxiv.org/abs/2507.07237}, 
 }
 ```
