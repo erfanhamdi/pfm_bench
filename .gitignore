@@ -12,3 +12,4 @@ src/models/__pycache__/
 src/metrics/__pycache__/
 *.pth
 *.pyc
+tests/test_load_data_sample.py
