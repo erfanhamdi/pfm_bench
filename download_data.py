@@ -16,6 +16,11 @@ def curl_download(doi, outdir):
     print("Running the curl command...")
     cmd = f'cd "{outdir}" && {curl_cmd}'
     os.system(cmd)
+    unzip_result = os.system("unzip dataverse_files.zip")
+    if unzip_result == 0:
+        os.remove(f"{outdir}/dataverse_files.zip")
+    else:
+        print("Unzip failed keeping the original files")
     
 def main():
     # Set up argument parser
