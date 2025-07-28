@@ -13,11 +13,7 @@ pip install -e .
 ```
 
 ## Downloading Datasets
-There are multiple ways to download the dataset, The easiest way would be to use the `download_data.py` script but that some times results in 403 errors from the host side due to rate limits, if that is the case you can download the datasets using the alternative method which will be described in the following sections:
-
-### Using the python script
-
-You can download the datasets by running the `download_data.py` script and passing the case type and energy decomposition method.
+You can download the dataset by providing the boundary condition using `--case`, energy decompositoin method using `--decomp` and data download method using `--method` to the `download_data.py` script. We suggest using the `curl` option for download method due to rate limit problems that you might encounter downloading the dataset using the `ezdataverse` package.
 
 #### Arguments
 
@@ -25,26 +21,15 @@ You can download the datasets by running the `download_data.py` script and passi
   - Options: `tension` or `shear`
 - `--decomp`: The energy decomposition method (required)
   - Options: `spect`, `vol`, or `star`
+- `--method`: Download method (default on `curl`)
+  - Options: `curl` or `ez`
 
 #### Examples
 
 ```bash
 # Download tension spectral data
-python download_data.py --case tension --decomp spect
+python download_data.py --case tension --decomp spect --method curl
 ```
-### The alternative way to download the dataset
-You can also use `curl` to download the dataset here is an example on how to do that:
-
-```bash
-export SERVER=https://dataverse.harvard.edu
-export DOI=doi:10.7910/DVN/YLQGUO
-./curl -L -O -J -k $SERVER"/api/access/dataset/:persistentId/?persistentId="$DOI
-```
-* You can replace the DOI with the doi of the dataset that you want to download. 
-
-* You can find the downloaded data with the name `dataverse_files.zip`
-
-
 
 ## Datasets
 

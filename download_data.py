@@ -16,11 +16,26 @@ def curl_download(doi, outdir):
     print("Running the curl command...")
     cmd = f'cd "{outdir}" && {curl_cmd}'
     os.system(cmd)
-    unzip_result = os.system("unzip dataverse_files.zip")
-    if unzip_result == 0:
+    zip_file = os.path.join(outdir, "dataverse_files.zip")
+    
+    env = os.environ.copy()
+    env['UNZIP_DISABLE_ZIPBOMB_DETECTION'] = 'TRUE'
+    print("Extracting the dataset...")
+    import subprocess
+    unzip_result = subprocess.run(
+        f"unzip {zip_file} -d '{outdir}'",
+        shell=True,
+        env=env,
+        capture_output=False,
+        text=True
+    )
+    
+    if unzip_result.returncode == 0:
         os.remove(f"{outdir}/dataverse_files.zip")
+        print("Unzip successful, original zip file removed.")
     else:
-        print("Unzip failed keeping the original files")
+        print("Unzip failed, keeping original zip file.")
+        print(f"Error: {unzip_result.stderr}")
     
 def main():
     # Set up argument parser
@@ -29,7 +44,7 @@ def main():
                        help='Case type: tension or shear')
     parser.add_argument('--decomp', type=str, required=True, choices=['spect', 'vol', 'star'],
                        help='Energy decomposition type: spect, vol, or star')
-    parser.add_argument('--method', type=str, required=True, choices=['ez', 'curl'],
+    parser.add_argument('--method', type=str, default='curl', choices=['ez', 'curl'],
                        help='Data Download Method')                       
     
     args = parser.parse_args()
