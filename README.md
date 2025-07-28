@@ -13,7 +13,7 @@ pip install -e .
 ```
 
 ## Downloading Datasets
-You can download the dataset by providing the boundary condition using `--case`, energy decompositoin method using `--decomp` and data download method using `--method` to the `download_data.py` script. We suggest using the `curl` option for download method due to rate limit problems that you might encounter downloading the dataset using the `ezdataverse` package.
+You can download the dataset by providing the boundary condition using `--case`, energy decompositoin method using `--decomp` and data download method using `--method` to the `download_data.py` script. We suggest using the `curl` option for download method due to rate limit problems that you might encounter downloading the dataset using the `ezdataverse` package. This method downloads the zipped form of the dataset, extracts it and removes the zip file.
 
 #### Arguments
 
