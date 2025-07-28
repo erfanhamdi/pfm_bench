@@ -13,22 +13,38 @@ pip install -e .
 ```
 
 ## Downloading Datasets
+There are multiple ways to download the dataset, The easiest way would be to use the `download_data.py` script but that some times results in 403 errors from the host side due to rate limits, if that is the case you can download the datasets using the alternative method which will be described in the following sections:
+
+### Using the python script
 
 You can download the datasets by running the `download_data.py` script and passing the case type and energy decomposition method.
 
-### Arguments
+#### Arguments
 
 - `--case`: The case type (required)
   - Options: `tension` or `shear`
 - `--decomp`: The energy decomposition method (required)
   - Options: `spect`, `vol`, or `star`
 
-### Examples
+#### Examples
 
 ```bash
 # Download tension spectral data
 python download_data.py --case tension --decomp spect
 ```
+### The alternative way to download the dataset
+You can also use `curl` to download the dataset here is an example on how to do that:
+
+```bash
+export SERVER=https://dataverse.harvard.edu
+export DOI=doi:10.7910/DVN/YLQGUO
+./curl -L -O -J -k $SERVER"/api/access/dataset/:persistentId/?persistentId="$DOI
+```
+* You can replace the DOI with the doi of the dataset that you want to download. 
+
+* You can find the downloaded data with the name `dataverse_files.zip`
+
+
 
 ## Datasets
 
@@ -61,6 +77,23 @@ data/
 |      └── 17882.hdf5
 |      └── 19030.hdf5
 |      └── ...
+```
+### Accessing the data
+You can have access to the data of each data sample in this way:
+
+```python
+#Import the necessary packages
+import h5py
+import numpy as np
+file_path = "2519.hdf5"
+with h5py.File(file_path, "r") as f:
+  # The key is the seed used to generate the initial crack
+  print(f.keys())
+  #>> <KeysViewHDF5 ['00002519']># Now you can access the data using the key
+  print(f['00002519'].keys())#>> <KeysViewHDF5 ['data', 'force_disp_x', 'force_disp_y', 'grid','init']>
+  print(f['00002519']['data'].shape)
+  #>> (3, 101, 128, 128)# The first dimension is the number of fields (damage, displacement x,displacement y)
+  # The second dimension is the number of steps# The third and fourth dimensions are the spatial dimensions
 ```
 ## Using the pretrained models
 You can also download the pretrained models and the compressed predictions from [here](https://doi.org/10.7910/DVN/AA86HP) to reproduce the results in the paper.

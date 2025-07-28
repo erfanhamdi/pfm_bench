@@ -10,6 +10,13 @@ dataset_dict = {'tension': {'spect': 'doi:10.7910/DVN/G3QRE0',
                             'star': 'doi:10.7910/DVN/APUKE5'}
 }
 
+def curl_download(doi, outdir):
+    URL = f"https://dataverse.harvard.edu/api/access/dataset/:persistentId/?persistentId={doi}"
+    curl_cmd = f'curl -L -O -J -k "{URL}"'
+    print("Running the curl command...")
+    cmd = f'cd "{outdir}" && {curl_cmd}'
+    os.system(cmd)
+    
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Download dataset based on case and energy decomposition')
@@ -17,6 +24,8 @@ def main():
                        help='Case type: tension or shear')
     parser.add_argument('--decomp', type=str, required=True, choices=['spect', 'vol', 'star'],
                        help='Energy decomposition type: spect, vol, or star')
+    parser.add_argument('--method', type=str, required=True, choices=['ez', 'curl'],
+                       help='Data Download Method')                       
     
     args = parser.parse_args()
     
@@ -35,14 +44,20 @@ def main():
     print(f"DOI: {doi}")
     print(f"Output directory: {outdir}")
     
-    # Initialize dataverse and download dataset
-    dataverse = Dataverse("https://dataverse.harvard.edu")
-    dataset = dataverse.load_dataset(
-        pid=doi,
-        filedir=outdir,
-    )
-    print(f"Dataset downloaded successfully to {outdir}")
-    print(dataset)
+    if args.method == 'ez':
+        try:
+            # Initialize dataverse and download dataset
+            dataverse = Dataverse("https://dataverse.harvard.edu")
+            dataset = dataverse.load_dataset(
+                pid=doi,
+                filedir=outdir,
+            )
+            print(f"Dataset downloaded successfully to {outdir}")
+            print(dataset)
+        except:
+            curl_download(doi, outdir)
+    if args.method == 'curl':
+        curl_download(doi, outdir)
 
 if __name__ == "__main__":
     main()
