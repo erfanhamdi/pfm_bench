@@ -3,7 +3,7 @@
 Dataset for benchmarking ML surrogate models on phase-field modeling of fracture.
 This repository provides script for downloading the datasets, training the baseline models and ensemble learning methods that was discussed in the paper.
 ![img](figures/intro.png)
-
+![img](figures/crack-propagation.gif)
 ## Prerequisites
 
 Install the project in editable mode:
