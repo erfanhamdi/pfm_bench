@@ -1,7 +1,7 @@
 import argparse
 import os
 from easyDataverse import Dataverse
-
+import re
 dataset_dict = {'tension': {'spect': 'doi:10.7910/DVN/G3QRE0',
                             'vol': 'doi:10.7910/DVN/G5DLI7',
                             'star': 'doi:10.7910/DVN/9URYI1'},
@@ -14,7 +14,7 @@ def download_individually(doi, outdir):
     import requests
     from urllib.parse import unquote
 
-    dataset_api_url = f"https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi:{doi}"
+    dataset_api_url = f"https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId={doi}"
     os.makedirs(outdir, exist_ok=True)
 
     print("🔍 Fetching dataset metadata...")
@@ -34,7 +34,12 @@ def download_individually(doi, outdir):
         download_url = f"https://dataverse.harvard.edu/api/access/datafile/{file_id}"
         output_path = os.path.join(outdir, orig_name)
 
+        if os.path.exists(output_path) and size != "unknown" and os.path.getsize(output_path) == size:
+            print(f"✅ Already exists with same size: {orig_name}")
+            continue
+
         print(f"⬇️ Downloading: {orig_name} ({size} bytes)")
+        
 
         try:
             r = requests.get(download_url, stream=True)
