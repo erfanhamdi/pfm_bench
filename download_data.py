@@ -9,6 +9,44 @@ dataset_dict = {'tension': {'spect': 'doi:10.7910/DVN/G3QRE0',
                             'vol': 'doi:10.7910/DVN/OCVQJ1',
                             'star': 'doi:10.7910/DVN/APUKE5'}
 }
+def download_individually(doi, outdir):
+    import os
+    import requests
+    from urllib.parse import unquote
+
+    dataset_api_url = f"https://dataverse.harvard.edu/api/datasets/:persistentId/?persistentId=doi:{doi}"
+    os.makedirs(outdir, exist_ok=True)
+
+    print("🔍 Fetching dataset metadata...")
+    response = requests.get(dataset_api_url)
+    response.raise_for_status()
+    data = response.json()
+
+    files = data["data"]["latestVersion"]["files"]
+    print(f"📁 Found {len(files)} files.")
+
+    # Step 3: Download each file
+    for f in files:
+        file_id = f["dataFile"]["id"]
+        orig_name = f["dataFile"]["filename"]
+        size = f["dataFile"].get("filesize", "unknown")
+        
+        download_url = f"https://dataverse.harvard.edu/api/access/datafile/{file_id}"
+        output_path = os.path.join(outdir, orig_name)
+
+        print(f"⬇️ Downloading: {orig_name} ({size} bytes)")
+
+        try:
+            r = requests.get(download_url, stream=True)
+            r.raise_for_status()
+
+            with open(output_path, "wb") as out_file:
+                for chunk in r.iter_content(chunk_size=8192):
+                    out_file.write(chunk)
+
+            print(f"✅ Saved: {output_path}")
+        except Exception as e:
+            print(f"❌ Failed to download {orig_name}: {e}")
 
 def pad_filenames(directory: str):
     """Rename files with numeric names to have 8-digit zero-padded names.
@@ -93,7 +131,7 @@ def main():
                        help='Case type: tension or shear')
     parser.add_argument('--decomp', type=str, required=True, choices=['spect', 'vol', 'star'],
                        help='Energy decomposition type: spect, vol, or star')
-    parser.add_argument('--method', type=str, default='curl', choices=['ez', 'curl'],
+    parser.add_argument('--method', type=str, default='indie', choices=['ez', 'curl', 'indie'],
                        help='Data Download Method')                       
     
     args = parser.parse_args()
@@ -127,6 +165,8 @@ def main():
             curl_download(doi, outdir)
     if args.method == 'curl':
         curl_download(doi, outdir)
+    if args.method == 'indie':
+        download_individually(doi, outdir)
     print("Renaming files to have 8-digit zero-padded names")
     pad_filenames(outdir)
     print("File renaming completed.")
