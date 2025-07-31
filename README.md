@@ -21,8 +21,8 @@ You can download the dataset by providing the boundary condition using `--case`,
   - Options: `tension` or `shear`
 - `--decomp`: The energy decomposition method (required)
   - Options: `spect`, `vol`, or `star`
-- `--method`: Download method (default on `curl`)
-  - Options: `curl` or `ez`
+- `--method`: Download method (default on `indie`)
+  - Options: `indie`, `curl` or `ez`
 
 #### Examples
 
