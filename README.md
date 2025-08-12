@@ -28,7 +28,7 @@ You can download the dataset by providing the boundary condition using `--case`,
 
 ```bash
 # Download tension spectral data
-python download_data.py --case tension --decomp spect --method curl
+python download_data.py --case tension --decomp spect --method indie
 ```
 
 ## Datasets
