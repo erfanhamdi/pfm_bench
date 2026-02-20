@@ -46,6 +46,16 @@ Download phase-field evolution datasets from Harvard Dataverse:
 | shear | vol | [doi:10.7910/DVN/OCVQJ1](https://doi.org/10.7910/DVN/OCVQJ1) |
 | shear | star | [doi:10.7910/DVN/APUKE5](https://doi.org/10.7910/DVN/APUKE5) |
 
+#### PFM-Fracture Lite
+| Case | Decomposition | Resolution | #Initial Cracks | DOI |
+|------|---------------|-----|-----|------|
+| tension | vol | 128 | 1 | [doi:10.7910/DVN/J9QVSD](https://doi.org/10.7910/DVN/J9QVSD) |
+| tension | vol | 128 | 2 | [doi:10.7910/DVN/DTKMZK](https://doi.org/10.7910/DVN/DTKMZK) |
+| tension | vol | 128 | 3 | [doi:10.7910/DVN/NRZZRC](https://doi.org/10.7910/DVN/NRZZRC) |
+| tension | vol | fullres | 1 | [doi:10.7910/DVN/HKXBMO](https://doi.org/10.7910/DVN/HKXBMO) |
+| tension | vol | fullres | 2 | [doi:10.7910/DVN/GIHUIZ](https://doi.org/10.7910/DVN/GIHUIZ) |
+| tension | vol | fullres | 3 | [doi:10.7910/DVN/NMAMIO](https://doi.org/10.7910/DVN/NMAMIO) |
+
 ## Output Structure
 
 The downloaded datasets are stored in the `data` directory with the following structure:
