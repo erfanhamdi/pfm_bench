@@ -2,7 +2,10 @@ import argparse
 import os
 from easyDataverse import Dataverse
 import re
-dataset_dict = {'tension': {'spect': 'doi:10.7910/DVN/YLQGUO',
+dataset_dict = {'lite': {'1c': 'doi:10.7910/DVN/J9QVSD',
+                         '2c': 'doi:10.7910/DVN/DTKMZK',
+                         '3c': 'doi:10.7910/DVN/NRZZRC'},
+                'tension': {'spect': 'doi:10.7910/DVN/YLQGUO',
                             'vol': 'doi:10.7910/DVN/G5DLI7',
                             'star': 'doi:10.7910/DVN/9URYI1'},
                 'shear': {'spect': 'doi:10.7910/DVN/KZDRUE',
@@ -132,10 +135,10 @@ def curl_download(doi, outdir):
 def main():
     # Set up argument parser
     parser = argparse.ArgumentParser(description='Download dataset based on case and energy decomposition')
-    parser.add_argument('--case', type=str, required=True, choices=['tension', 'shear'],
+    parser.add_argument('--case', type=str, required=True, choices=['tension', 'shear', 'lite'],
                        help='Case type: tension or shear')
-    parser.add_argument('--decomp', type=str, required=True, choices=['spect', 'vol', 'star'],
-                       help='Energy decomposition type: spect, vol, or star')
+    parser.add_argument('--decomp', type=str, required=True, choices=['spect', 'vol', 'star', '1c', '2c', '3c'],
+                       help='Energy decomposition type or number of initial cracks for the lite version: spect, vol, star, 1c, 2c, or 3c')
     parser.add_argument('--method', type=str, default='indie', choices=['ez', 'curl', 'indie'],
                        help='Data Download Method')                       
     

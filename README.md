@@ -18,9 +18,9 @@ You can download the dataset by providing the boundary condition using `--case`,
 #### Arguments
 
 - `--case`: The case type (required)
-  - Options: `tension` or `shear`
-- `--decomp`: The energy decomposition method (required)
-  - Options: `spect`, `vol`, or `star`
+  - Options: `tension` or `shear` or `lite`
+- `--decomp`: The energy decomposition method (required). If you want to download the lite version of the dataset you should instead choose from `1c`, `2c`, and `3c`
+  - Options: `spect`, `vol`, or `star`, `1c`, `2c`, `3c`
 - `--method`: Download method (default on `indie`)
   - Options: `indie`, `curl` or `ez`
 
@@ -29,6 +29,10 @@ You can download the dataset by providing the boundary condition using `--case`,
 ```bash
 # Download tension spectral data
 python download_data.py --case tension --decomp spect --method indie
+```
+To download the lite version of the dataset with 2 cracks:
+```bash
+python download_data.py --case lite --decomp 2c --method indie
 ```
 
 ## Datasets
